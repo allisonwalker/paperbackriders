@@ -43,7 +43,7 @@ export async function confirmPlaceAction(
   const outcome = await runConfirm(formData);
   if (outcome.status === "saved") {
     await publishPlaceChange();
-    redirect(`/edit?month=${encodeURIComponent(outcome.month)}&place=1`);
+    redirect(`/edit?tab=meeting&place=1&month=${encodeURIComponent(outcome.month)}`);
   }
   return outcome;
 }
@@ -55,7 +55,7 @@ export async function clearPlaceAction(
   const outcome = await runClear(formData);
   if (outcome.status === "cleared") {
     await publishPlaceChange();
-    redirect(`/edit?month=${encodeURIComponent(outcome.month)}&place=cleared`);
+    redirect(`/edit?tab=meeting&place=cleared&month=${encodeURIComponent(outcome.month)}`);
   }
   return outcome;
 }

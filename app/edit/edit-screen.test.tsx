@@ -407,10 +407,8 @@ describe("edit screen", () => {
     );
     expect(saved).toContain("Venue name saved.");
     expect(saved).toContain('value="Cal Anderson Park"');
-    expect(saved).toContain("Find this place");
-    expect(saved).toContain("Powered by Geoapify");
-    expect(saved).toContain("https://www.geoapify.com/");
-    expect(saved).toContain("A confirmed pin is public.");
+    expect(saved).not.toContain("Find this place");
+    expect(saved).not.toContain("Powered by Geoapify");
     expect(saved).not.toContain('value="The Ruby"');
     expect(saved).not.toContain("Save meeting");
     const savedMeeting = renderToStaticMarkup(
@@ -420,33 +418,48 @@ describe("edit screen", () => {
         selectedMonth="2026-03-01"
         notice="venue"
         venue={{ status: "ready", enteredName: "Cal Anderson Park", placeLabel: null }}
+        meetingVenue={{ status: "ready", enteredName: "Cal Anderson Park", placeLabel: null }}
         meeting={meetingRow}
         tab="meeting"
       />,
     );
     expect(savedMeeting).toContain('value="The Ruby"');
+    expect(savedMeeting).toContain("Find this place");
+    expect(savedMeeting).toContain("Powered by Geoapify");
+    expect(savedMeeting).toContain("https://www.geoapify.com/");
+    expect(savedMeeting).toContain("A confirmed pin is public.");
+    expect(savedMeeting).toContain('value="2026-11-01"');
     expect(savedMeeting).not.toContain("Venue name saved.");
-    expect(savedMeeting).not.toContain("Find this place");
-    expect(savedMeeting).not.toContain("Powered by Geoapify");
+    expect(savedMeeting).not.toContain('name="enteredName"');
+    expect(savedMeeting).not.toContain("Save venue name");
     expect(savedMeeting).not.toContain("Confirm this place");
     expect(savedMeeting).not.toContain('name="candidate"');
   });
 
-  test("a confirmed place stays on the selected month and off the next meeting", () => {
+  test("a confirmed place stays on the next meeting and off Picks", () => {
+    const confirmed = { status: "ready" as const, enteredName: "The Ruby", placeLabel: "The Ruby, Seattle, Washington" };
+    const meetingRow = {
+      status: "set" as const,
+      date: "2026-11-18",
+      time: "19:00",
+      place: "The Ruby",
+      pickId: "november",
+    };
     const html = renderToStaticMarkup(
       <EditScreen
         access={{ status: "signed-in", email: "keeper@example.com" }}
         {...editor}
         selectedMonth="2026-03-01"
         notice="place"
-        venue={{ status: "ready", enteredName: "The Ruby", placeLabel: "The Ruby, Seattle, Washington" }}
+        venue={confirmed}
+        meeting={meetingRow}
       />,
     );
-    expect(html).toContain("Place confirmed. Anyone with the link can see this pin.");
-    expect(html).toContain("Confirmed place: The Ruby, Seattle, Washington");
-    expect(html).toContain("Clear confirmed place");
+    expect(html).not.toContain("Place confirmed.");
+    expect(html).not.toContain("Confirmed place:");
+    expect(html).not.toContain("Clear confirmed place");
+    expect(html).not.toContain("Find this place");
     expect(html).toContain("does not change the next meeting or move a pin");
-    expect(html).toContain("Choose a public bar, park, or similar.");
     expect(html).not.toContain("Save meeting");
     const meeting = renderToStaticMarkup(
       <EditScreen
@@ -454,15 +467,20 @@ describe("edit screen", () => {
         {...editor}
         selectedMonth="2026-03-01"
         notice="place"
-        venue={{ status: "ready", enteredName: "The Ruby", placeLabel: "The Ruby, Seattle, Washington" }}
+        venue={confirmed}
+        meetingVenue={confirmed}
+        meeting={meetingRow}
         tab="meeting"
       />,
     );
-    expect(meeting).not.toContain("Place confirmed.");
-    expect(meeting).not.toContain("Confirmed place:");
-    expect(meeting).not.toContain("Clear confirmed place");
-    expect(meeting).not.toContain("Find this place");
-    expect(meeting).not.toContain("Powered by Geoapify");
+    expect(meeting).toContain("Place confirmed. Anyone with the link can see this pin.");
+    expect(meeting).toContain("Confirmed place: The Ruby, Seattle, Washington");
+    expect(meeting).toContain("Clear confirmed place");
+    expect(meeting).toContain("Find this place");
+    expect(meeting).toContain("Choose a public bar, park, or similar.");
+    expect(meeting).toContain("Powered by Geoapify");
+    expect(meeting).not.toContain("Save venue name");
+    expect(meeting).not.toContain('name="enteredName"');
   });
 
   test("a confirmation belongs to the tab that saved it", () => {

@@ -42,8 +42,9 @@ export function editorTab(value: string | null): EditorTab {
 
 export function noticeForTab(tab: EditorTab, notice: EditorNotice | null): EditorNotice | null {
   if (notice === null) return null;
-  if (tab === "meeting") return notice === "meeting" ? "meeting" : null;
-  return notice === "meeting" ? null : notice;
+  const onMeeting = notice === "meeting" || notice === "place" || notice === "place-cleared";
+  if (tab === "meeting") return onMeeting ? notice : null;
+  return onMeeting ? null : notice;
 }
 
 export function picksTabHref(month: string | null): string {

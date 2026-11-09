@@ -20,6 +20,7 @@ import {
 } from "./editor-query";
 import { signOutRecordKeeper } from "./actions";
 import { MeetingForm, type MeetingChoice } from "./meeting-form";
+import { meetingPickMonth } from "./meeting-month";
 import { DeletePickForm, PickForm, type PickFormValues } from "./pick-form";
 import { SignInForm } from "./sign-in-form";
 import { VenueForm, type VenueFormValues } from "./venue-form";
@@ -41,6 +42,7 @@ type EditScreenProps =
       currentMonth: string;
       meeting: EditorMeetingState;
       venue: VenueNameState | null;
+      meetingVenue?: VenueNameState | null;
       tab?: EditorTab;
     };
 
@@ -94,6 +96,7 @@ function EditorBody(props: EditScreenProps) {
       currentMonth={props.currentMonth}
       meeting={props.meeting}
       venue={props.venue}
+      meetingVenue={props.meetingVenue ?? null}
       tab={tab}
     />
   );
@@ -119,6 +122,7 @@ function SignedIn({
   currentMonth,
   meeting,
   venue,
+  meetingVenue,
   tab: initialTab,
 }: {
   email: string;
@@ -130,6 +134,7 @@ function SignedIn({
   currentMonth: string;
   meeting: EditorMeetingState;
   venue: VenueNameState | null;
+  meetingVenue: VenueNameState | null;
   tab: EditorTab;
 }) {
   const [view, setView] = useState({ tab: initialTab, notice: initialNotice });
@@ -204,7 +209,8 @@ function SignedIn({
           today={today}
           currentMonth={currentMonth}
           returnMonth={selected?.month ?? null}
-          saved={notice === "meeting"}
+          notice={notice}
+          meetingVenue={meetingVenue}
         />
       ) : (
         <div className="editor-pick">
@@ -242,14 +248,7 @@ function VenueSection({
   }
 
   const values = venueFormValues(month, venue.enteredName, venue.placeLabel, meeting);
-  return (
-    <>
-      <VenueForm key={`${month}-${values.enteredName}`} values={values} />
-      {values.enteredName && !values.fromMeeting ? (
-        <PlaceFinder key={`${month}-${venue.placeLabel ?? ""}`} month={month} placeLabel={venue.placeLabel} />
-      ) : null}
-    </>
-  );
+  return <VenueForm key={`${month}-${values.enteredName}`} values={values} />;
 }
 
 function venueFormValues(
@@ -269,19 +268,22 @@ function MeetingSection({
   today,
   currentMonth,
   returnMonth,
-  saved,
+  notice,
+  meetingVenue,
 }: {
   records: EditorPicksState;
   meeting: EditorMeetingState;
   today: string;
   currentMonth: string;
   returnMonth: string | null;
-  saved: boolean;
+  notice: EditorNotice | null;
+  meetingVenue: VenueNameState | null;
 }) {
   return (
     <div className="editor-pick">
       <h3 className="edit-heading">Next meeting</h3>
-      {saved ? <p role="status">The next meeting is saved.</p> : null}
+      {notice === "meeting" ? <p role="status">The next meeting is saved.</p> : null}
+      {notice === "place" || notice === "place-cleared" ? <p role="status">{noticeText(notice)}</p> : null}
       <MeetingBody
         records={records}
         meeting={meeting}
@@ -289,8 +291,27 @@ function MeetingSection({
         currentMonth={currentMonth}
         returnMonth={returnMonth}
       />
+      <MeetingPlaceFinder records={records} meeting={meeting} venue={meetingVenue} />
     </div>
   );
+}
+
+function MeetingPlaceFinder({
+  records,
+  meeting,
+  venue,
+}: {
+  records: EditorPicksState;
+  meeting: EditorMeetingState;
+  venue: VenueNameState | null;
+}) {
+  const month = meetingPickMonth(records, meeting);
+  if (!month) return null;
+  if (!venue || venue.status === "error") {
+    return venue?.status === "error" ? <p role="alert">The venue name could not be loaded.</p> : null;
+  }
+  if (!venue.enteredName) return null;
+  return <PlaceFinder key={`${month}-${venue.placeLabel ?? ""}`} month={month} placeLabel={venue.placeLabel} />;
 }
 
 function MeetingBody({
