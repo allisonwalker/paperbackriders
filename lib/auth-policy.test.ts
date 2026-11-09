@@ -96,7 +96,12 @@ describe("session cookie", () => {
 
 describe("auth configuration", () => {
   test("turns password sign-up off and does not cache the session away from Postgres", () => {
-    const security = authSecurityOptions({ NODE_ENV: "production", BETTER_AUTH_URL: "https://club.example" });
+    const security = authSecurityOptions({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      BETTER_AUTH_URL: "https://club.example",
+    });
     expect(security.baseURL).toBe("https://club.example");
     expect(security.emailAndPassword).toEqual({ enabled: false, disableSignUp: true });
     expect(security.session.cookieCache.enabled).toBe(false);
@@ -106,10 +111,25 @@ describe("auth configuration", () => {
     expect(CLOSED_AUTH_PATHS).toContain("/sign-in/email");
   });
 
-  test("uses BETTER_AUTH_URL only when it is set", () => {
-    expect(resolveAuthBaseURL({ BETTER_AUTH_URL: " https://club.example " })).toBe("https://club.example");
+  test("uses BETTER_AUTH_URL only on the production deployment", () => {
     expect(
       resolveAuthBaseURL({
+        VERCEL: "1",
+        VERCEL_ENV: "production",
+        BETTER_AUTH_URL: " https://club.example ",
+      }),
+    ).toBe("https://club.example");
+    expect(
+      resolveAuthBaseURL({
+        VERCEL: "1",
+        VERCEL_ENV: "preview",
+        BETTER_AUTH_URL: "https://club.example",
+        VERCEL_URL: "preview.vercel.app",
+      }),
+    ).toBeUndefined();
+    expect(
+      resolveAuthBaseURL({
+        BETTER_AUTH_URL: "https://club.example",
         VERCEL_URL: "preview.vercel.app",
         NEXT_PUBLIC_BETTER_AUTH_URL: "https://club.example",
         BASE_URL: "https://club.example",
@@ -117,16 +137,26 @@ describe("auth configuration", () => {
     ).toBeUndefined();
   });
 
-  test("reads the request host when BETTER_AUTH_URL is unset", () => {
+  test("reads the request host when preview has no auth URL, or one copied from production", () => {
+    const requestHost = {
+      allowedHosts: [...REQUEST_HOSTS],
+      protocol: "auto" as const,
+    };
     expect(
       authBaseURL({
+        VERCEL: "1",
+        VERCEL_ENV: "preview",
         VERCEL_URL: "preview.vercel.app",
         BASE_URL: "https://club.example",
       }),
-    ).toEqual({
-      allowedHosts: [...REQUEST_HOSTS],
-      protocol: "auto",
-    });
+    ).toEqual(requestHost);
+    expect(
+      authBaseURL({
+        VERCEL: "1",
+        VERCEL_ENV: "preview",
+        BETTER_AUTH_URL: "https://club.example",
+      }),
+    ).toEqual(requestHost);
   });
 
   test("rejects public auth env and a BASE_URL standing in for an unset auth URL", () => {

@@ -1,6 +1,6 @@
-export type AuthEnv = {
-  [key: string]: string | undefined;
-};
+import { deploymentTarget, type ProcessEnv } from "./database-isolation";
+
+export type AuthEnv = ProcessEnv;
 
 const PUBLIC_AUTH_ENV = [
   "NEXT_PUBLIC_BETTER_AUTH_URL",
@@ -64,10 +64,12 @@ export function allowVerificationCreate(
 }
 
 /**
- * Production passes BETTER_AUTH_URL through. Anywhere else, including preview,
- * leaves it unset so Better Auth uses the request host. VERCEL_URL is ignored.
+ * The production deployment passes BETTER_AUTH_URL through. Preview and local
+ * ignore it, even if it was copied from production, so the magic link uses the
+ * request host. VERCEL_URL is ignored.
  */
 export function resolveAuthBaseURL(env: AuthEnv): string | undefined {
+  if (deploymentTarget(env) !== "production") return undefined;
   const configured = env.BETTER_AUTH_URL?.trim();
   return configured || undefined;
 }
