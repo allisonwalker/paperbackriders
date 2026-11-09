@@ -3,11 +3,11 @@ import { getTableColumns, getTableName } from "drizzle-orm";
 import { getTableConfig, PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, test } from "vitest";
 import * as schema from "./schema";
-import { picks } from "./schema";
+import { meetings, picks } from "./schema";
 
 describe("pick table", () => {
-  test("is the only table and has no current-pick flag", () => {
-    expect(Object.keys(schema)).toEqual(["picks"]);
+  test("is a pick table and has no current-pick flag", () => {
+    expect(Object.keys(schema)).toEqual(["picks", "meetings"]);
     expect(getTableName(picks)).toBe("picks");
 
     const columns = Object.keys(getTableColumns(picks));
@@ -55,7 +55,36 @@ describe("pick table", () => {
   test("the page stays on the Node.js runtime and does not check a session", () => {
     const source = readFileSync(new URL("../../app/page.tsx", import.meta.url), "utf8");
     expect(source).toContain('export const runtime = "nodejs"');
+    expect(source).toContain("loadNextMeeting");
     expect(source).not.toMatch(/better-auth|requireRecordKeeper|cookies\(/);
     expect(source).not.toMatch(/openlibrary\.org\/search/);
+    expect(source).not.toMatch(/\.delete\(/);
+  });
+});
+
+describe("meeting table", () => {
+  test("stores one meeting that points at a pick", () => {
+    expect(getTableName(meetings)).toBe("meetings");
+    expect(Object.keys(getTableColumns(meetings))).toEqual([
+      "id",
+      "pickId",
+      "startsAt",
+      "place",
+      "updatedAt",
+      "singleton",
+    ]);
+
+    const dialect = new PgDialect();
+    const config = getTableConfig(meetings);
+    const checks = config.checks.map((constraint) => dialect.sqlToQuery(constraint.value).sql);
+    const uniques = config.uniqueConstraints.map((constraint) => constraint.name);
+    const foreignKey = config.foreignKeys[0];
+
+    expect(foreignKey).toBeDefined();
+    expect(foreignKey?.onDelete).toBe("restrict");
+    expect(checks.join("\n")).toContain("singleton");
+    expect(checks.join("\n")).toContain("btrim");
+    expect(uniques).toContain("meetings_one_row");
+    expect(Object.keys(getTableColumns(meetings)).join(" ")).not.toMatch(/phone|email|latitude|longitude/i);
   });
 });

@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
+import { NO_UPCOMING_MEETING, type MeetingView } from "@/lib/meeting";
 import type { FeaturedPickState } from "@/lib/picks";
 import { PublicPage } from "./public-page";
 
@@ -18,8 +19,20 @@ const book: FeaturedPickState = {
   },
 };
 
-function render(state: FeaturedPickState): string {
-  return renderToStaticMarkup(<PublicPage state={state} />);
+const none: MeetingView = { status: "none" };
+
+const upcoming: MeetingView = {
+  status: "upcoming",
+  daysRemaining: 10,
+  lead: "Meets in 10 days",
+  dateLabel: "Wednesday, November 18, 2026",
+  timeLabel: "7:00 PM",
+  place: "Priya's house",
+  discussing: "The Prestige by Christopher Priest",
+};
+
+function render(featured: FeaturedPickState, meeting: MeetingView = none): string {
+  return renderToStaticMarkup(<PublicPage featured={featured} meeting={meeting} />);
 }
 
 describe("public page", () => {
@@ -105,19 +118,98 @@ describe("public page", () => {
     expect(html).not.toContain("example.com");
   });
 
-  test("leaves the hero empty when there is no pick", () => {
+  test("leaves the hero empty when there is no pick and still says there is no meeting", () => {
     const html = render({ status: "empty" });
     expect(html).toContain('aria-label="This month&#x27;s pick"');
     expect(html).not.toContain("<h2");
     expect(html).not.toContain("could not load");
     expect(html).not.toContain("’s pick");
+    expect(html).toContain(NO_UPCOMING_MEETING);
+    expect(html).not.toContain("Meets");
   });
 
-  test("says the page could not load, which is different from an empty club", () => {
-    const html = render({ status: "error" });
+  test("says the page could not load, which is different from an empty club or an unset meeting", () => {
+    const html = render({ status: "error" }, upcoming);
     expect(html).toContain("This page could not load.");
     expect(html).not.toContain("This month&#x27;s pick");
     expect(html).not.toContain("<h2");
+    expect(html).not.toContain(NO_UPCOMING_MEETING);
+    expect(html).not.toContain("Meets in 10 days");
     expect(html).toContain('src="/paperback-riders-mark.jpg"');
+  });
+
+  test("puts the meeting dateline under the featured title", () => {
+    const html = render(book, upcoming);
+    const titleAt = html.indexOf("The Prestige");
+    const leadAt = html.indexOf("Meets in 10 days");
+    const whenAt = html.indexOf("Wednesday, November 18, 2026, 7:00 PM");
+    const placeAt = html.indexOf("Priya&#x27;s house · discussing The Prestige by Christopher Priest");
+
+    expect(titleAt).toBeGreaterThan(-1);
+    expect(leadAt).toBeGreaterThan(titleAt);
+    expect(whenAt).toBeGreaterThan(leadAt);
+    expect(placeAt).toBeGreaterThan(whenAt);
+    expect(html).not.toContain("<iframe");
+    expect(html).not.toContain("mailto:");
+    expect(html).not.toContain("maps.");
+  });
+
+  test("names the meeting's own pick when it is not the featured book", () => {
+    const html = render(book, {
+      ...upcoming,
+      discussing: "Piranesi by Susanna Clarke",
+    });
+
+    expect(html).toContain("The Prestige");
+    expect(html).toContain("discussing Piranesi by Susanna Clarke");
+  });
+
+  test("names a prompt meeting by the prompt text", () => {
+    const html = render(
+      {
+        status: "ready",
+        pickLabel: "November\u2019s pick",
+        hero: {
+          kind: "prompt",
+          monthLabel: "March 2026",
+          promptText: "Read a book from the year you were born.",
+        },
+      },
+      {
+        ...upcoming,
+        lead: "Meets in 1 day",
+        discussing: "Book Exchange",
+      },
+    );
+
+    const featuredAt = html.indexOf("Read a book from the year you were born.");
+    const leadAt = html.indexOf("Meets in 1 day");
+    expect(featuredAt).toBeGreaterThan(-1);
+    expect(leadAt).toBeGreaterThan(featuredAt);
+    expect(html).toContain("discussing Book Exchange");
+  });
+
+  test("shows the empty sentence with no date, place, or day count", () => {
+    const html = render(book, none);
+    expect(html).toContain(NO_UPCOMING_MEETING);
+    expect(html).not.toContain("Meets");
+    expect(html).not.toContain("Wednesday");
+    expect(html).not.toContain("7:00");
+    expect(html).not.toContain("Priya");
+    expect(html).not.toContain("discussing");
+  });
+
+  test("renders the place as text, including an address that looks like contact details", () => {
+    const html = render(book, {
+      ...upcoming,
+      lead: "Meets today",
+      place: "Ada's porch <script>alert(1)</script> ada@example.com",
+    });
+
+    expect(html).toContain("Meets today");
+    expect(html).toContain("Ada&#x27;s porch &lt;script&gt;alert(1)&lt;/script&gt; ada@example.com");
+    expect(html).not.toContain("<script>alert");
+    expect(html).not.toContain("mailto:");
+    expect(html).not.toContain("<a ");
   });
 });

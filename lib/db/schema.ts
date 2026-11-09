@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, date, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, date, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const picks = pgTable(
   "picks",
@@ -43,5 +43,24 @@ export const picks = pgTable(
         and "lookup_key" is null
       )`,
     ),
+  ],
+);
+
+export const meetings = pgTable(
+  "meetings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pickId: uuid("pick_id")
+      .notNull()
+      .references(() => picks.id, { onDelete: "restrict" }),
+    startsAt: timestamp("starts_at", { withTimezone: true, mode: "date" }).notNull(),
+    place: text("place").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
+    singleton: boolean("singleton").notNull().default(true),
+  },
+  (table) => [
+    unique("meetings_one_row").on(table.singleton),
+    check("meetings_is_singleton", sql`${table.singleton} = true`),
+    check("meetings_place_present", sql`btrim(${table.place}) <> ''`),
   ],
 );

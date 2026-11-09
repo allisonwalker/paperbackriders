@@ -1,0 +1,204 @@
+{
+  "id": "9f59b2a5-422f-4c29-b90f-887c4ffcd3ce",
+  "prevId": "d9cc6f1b-1ab4-4fb5-91af-af200fd298a5",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.meetings": {
+      "name": "meetings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "pick_id": {
+          "name": "pick_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "place": {
+          "name": "place",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "singleton": {
+          "name": "singleton",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "meetings_pick_id_picks_id_fk": {
+          "name": "meetings_pick_id_picks_id_fk",
+          "tableFrom": "meetings",
+          "tableTo": "picks",
+          "columnsFrom": [
+            "pick_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "meetings_one_row": {
+          "name": "meetings_one_row",
+          "nullsNotDistinct": false,
+          "columns": [
+            "singleton"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "meetings_is_singleton": {
+          "name": "meetings_is_singleton",
+          "value": "\"meetings\".\"singleton\" = true"
+        },
+        "meetings_place_present": {
+          "name": "meetings_place_present",
+          "value": "btrim(\"meetings\".\"place\") <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.picks": {
+      "name": "picks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "month": {
+          "name": "month",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prompt_text": {
+          "name": "prompt_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author": {
+          "name": "author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_year": {
+          "name": "published_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_url": {
+          "name": "cover_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "page_count": {
+          "name": "page_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "genre": {
+          "name": "genre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lookup_source": {
+          "name": "lookup_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lookup_key": {
+          "name": "lookup_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "picks_month_unique": {
+          "name": "picks_month_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "month"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "picks_month_is_first_day": {
+          "name": "picks_month_is_first_day",
+          "value": "extract(day from \"month\") = 1"
+        },
+        "picks_book_or_prompt": {
+          "name": "picks_book_or_prompt",
+          "value": "(\n        \"kind\" = 'book'\n        and \"prompt_text\" is null\n        and \"title\" is not null\n        and btrim(\"title\") <> ''\n        and \"author\" is not null\n        and btrim(\"author\") <> ''\n        and (\"lookup_source\" is null or \"lookup_source\" in ('open_library', 'manual'))\n      ) or (\n        \"kind\" = 'prompt'\n        and \"prompt_text\" is not null\n        and btrim(\"prompt_text\") <> ''\n        and \"title\" is null\n        and \"author\" is null\n        and \"published_year\" is null\n        and \"cover_url\" is null\n        and \"page_count\" is null\n        and \"genre\" is null\n        and \"lookup_source\" is null\n        and \"lookup_key\" is null\n      )"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

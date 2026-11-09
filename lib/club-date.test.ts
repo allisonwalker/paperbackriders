@@ -1,5 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { CLUB_TIMEZONE, clubMonthStart, clubPickLabel, clubTimeZone, formatClubMonth } from "./club-date";
+import {
+  CLUB_TIMEZONE,
+  calendarDaysUntil,
+  clubCalendarDate,
+  clubMonthStart,
+  clubPickLabel,
+  clubTimeZone,
+  formatClubMonth,
+} from "./club-date";
 
 describe("club timezone", () => {
   test("defaults to America/Los_Angeles", () => {
@@ -34,5 +42,30 @@ describe("club month", () => {
 
   test("names the current club month on the pick label", () => {
     expect(clubPickLabel("2026-11-01")).toBe("November\u2019s pick");
+  });
+});
+
+describe("calendar day difference", () => {
+  test("reads the club calendar date rather than the UTC date", () => {
+    expect(clubCalendarDate(new Date("2026-11-19T03:00:00.000Z"), CLUB_TIMEZONE)).toBe("2026-11-18");
+    expect(clubCalendarDate(new Date("2026-11-19T08:00:00.000Z"), CLUB_TIMEZONE)).toBe("2026-11-19");
+  });
+
+  test("counts calendar dates, so tomorrow is 1 and today is 0", () => {
+    expect(calendarDaysUntil("2026-11-18", "2026-11-18")).toBe(0);
+    expect(calendarDaysUntil("2026-11-19", "2026-11-18")).toBe(1);
+    expect(calendarDaysUntil("2026-11-28", "2026-11-18")).toBe(10);
+  });
+
+  test("is negative when the meeting date is before today", () => {
+    expect(calendarDaysUntil("2026-11-17", "2026-11-18")).toBe(-1);
+  });
+
+  test("counts the November fallback as one calendar day across a few hours", () => {
+    const today = clubCalendarDate(new Date("2026-11-01T06:00:00.000Z"), CLUB_TIMEZONE);
+    const meeting = clubCalendarDate(new Date("2026-11-01T09:00:00.000Z"), CLUB_TIMEZONE);
+    expect(today).toBe("2026-10-31");
+    expect(meeting).toBe("2026-11-01");
+    expect(calendarDaysUntil(meeting, today)).toBe(1);
   });
 });

@@ -119,6 +119,30 @@ h2 {
   color: var(--meta);
 }
 
+.dateline {
+  margin: 1.6rem 0 0;
+}
+
+.spread + .dateline,
+h2 + .dateline {
+  padding-top: 1rem;
+  border-top: 1px solid var(--ink);
+}
+
+.dateline strong {
+  display: block;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 1.7rem;
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  color: #9c2b1b;
+}
+
+.dateline span {
+  display: block;
+  margin-top: 0.25rem;
+}
+
 [role="alert"] {
   margin: 0.85rem 0 0;
   font-family: var(--font-fraunces), Georgia, serif;
