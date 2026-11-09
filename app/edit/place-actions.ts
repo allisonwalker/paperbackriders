@@ -17,7 +17,7 @@ export type PlaceWriteFormState = {
 
 const SIGN_IN_REQUIRED = "You need to be signed in as the record keeper.";
 const SEARCH_EMPTY = "No matches came back. The venue name is unchanged, and no pin was added.";
-const SEARCH_MISSING = "Save a venue name for this month before looking up a place.";
+const SEARCH_MISSING = "Enter a place before looking it up.";
 const SEARCH_UNCONFIGURED = "Place search is not set up, so no places were looked up and no pin was added.";
 const SEARCH_UNAVAILABLE = "Place search didn't respond. The venue name is unchanged, and no pin was added.";
 const CONFIRM_REJECTED = "That match expired or was not one of the results. No pin was added. Search again and choose a result.";
@@ -27,7 +27,11 @@ const CLEAR_MISSING = "This month has no venue name to clear.";
 const CLEAR_FAILED = "The confirmed place could not be cleared.";
 
 export async function searchPlaceAction(_previous: PlaceSearchFormState, formData: FormData): Promise<PlaceSearchFormState> {
-  const result = await searchPlacesForRecordKeeper({ month: formData.get("month") });
+  const query = formData.get("query");
+  const result = await searchPlacesForRecordKeeper({
+    month: formData.get("month"),
+    query: typeof query === "string" ? query : undefined,
+  });
   if (result.status === "matches") return { status: "matches", candidates: result.candidates };
   if (result.status === "empty") return { status: "empty", message: SEARCH_EMPTY };
   if (result.status === "missing") return { status: "missing", message: SEARCH_MISSING };
@@ -65,6 +69,7 @@ async function runConfirm(formData: FormData): Promise<{ status: "saved"; month:
     const result = await confirmPlaceSelection({
       month: formData.get("month"),
       token: formData.get("candidate"),
+      place: formData.get("place"),
     });
     if (result.status === "saved") return { status: "saved", month: result.month };
     if (result.status === "rejected") return { status: "rejected", message: CONFIRM_REJECTED };

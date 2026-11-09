@@ -20,11 +20,9 @@ import {
 } from "./editor-query";
 import { signOutRecordKeeper } from "./actions";
 import { MeetingForm, type MeetingChoice } from "./meeting-form";
-import { meetingPickMonth } from "./meeting-month";
 import { DeletePickForm, PickForm, type PickFormValues } from "./pick-form";
 import { SignInForm } from "./sign-in-form";
 import { VenueForm, type VenueFormValues } from "./venue-form";
-import { PlaceFinder } from "./place-form";
 
 const MARK_SRC = "/paperback-riders-mark.jpg";
 
@@ -290,28 +288,10 @@ function MeetingSection({
         today={today}
         currentMonth={currentMonth}
         returnMonth={returnMonth}
+        meetingVenue={meetingVenue}
       />
-      <MeetingPlaceFinder records={records} meeting={meeting} venue={meetingVenue} />
     </div>
   );
-}
-
-function MeetingPlaceFinder({
-  records,
-  meeting,
-  venue,
-}: {
-  records: EditorPicksState;
-  meeting: EditorMeetingState;
-  venue: VenueNameState | null;
-}) {
-  const month = meetingPickMonth(records, meeting);
-  if (!month) return null;
-  if (!venue || venue.status === "error") {
-    return venue?.status === "error" ? <p role="alert">The venue name could not be loaded.</p> : null;
-  }
-  if (!venue.enteredName) return null;
-  return <PlaceFinder key={`${month}-${venue.placeLabel ?? ""}`} month={month} placeLabel={venue.placeLabel} />;
 }
 
 function MeetingBody({
@@ -320,12 +300,14 @@ function MeetingBody({
   today,
   currentMonth,
   returnMonth,
+  meetingVenue,
 }: {
   records: EditorPicksState;
   meeting: EditorMeetingState;
   today: string;
   currentMonth: string;
   returnMonth: string | null;
+  meetingVenue: VenueNameState | null;
 }) {
   if (meeting.status === "error") {
     return <p role="alert">The meeting could not be loaded.</p>;
@@ -354,6 +336,9 @@ function MeetingBody({
         returnMonth,
         choices: meetingChoices(records.picks),
       }}
+      pickMonths={records.picks.map((pick) => ({ id: pick.id, month: pick.month }))}
+      venue={meetingVenue}
+      venueMonth={meeting.status === "set" ? (records.picks.find((pick) => pick.id === meeting.pickId)?.month ?? null) : null}
     />
   );
 }

@@ -283,11 +283,17 @@ describe("edit screen", () => {
     expect(meeting).toMatch(/<option[^>]*value="november"[^>]*selected/);
     expect(meeting).not.toMatch(/<option[^>]*value="march"[^>]*selected/);
     expect(meeting).toContain("Save meeting");
+    expect(meeting).toContain("Find this place");
+    expect(meeting.indexOf('id="meeting-pick"')).toBeLessThan(meeting.indexOf('id="meeting-date"'));
+    expect(meeting.indexOf('id="meeting-date"')).toBeLessThan(meeting.indexOf('id="meeting-time"'));
+    expect(meeting.indexOf('id="meeting-time"')).toBeLessThan(meeting.indexOf('id="meeting-place"'));
+    expect(meeting.indexOf('id="meeting-place"')).toBeLessThan(meeting.indexOf("Find this place"));
+    expect(meeting.indexOf("Find this place")).toBeLessThan(meeting.indexOf("Save meeting"));
+    expect(meeting).toContain('name="query"');
     expect(meeting).not.toContain("Save venue name");
-    expect(meeting).not.toContain("Find this place");
     expect(meeting).not.toContain("Clear confirmed place");
     expect(meeting).not.toContain("Save month");
-    expect(meeting).not.toMatch(/geocode|maps\.|openstreetmap|leaflet|<iframe|type="tel"|type="email"|name="phone"|name="email"/i);
+    expect(meeting).not.toMatch(/geocode|leaflet|<iframe|type="tel"|type="email"|name="phone"|name="email"/i);
   });
 
   test("starts on the featured pick when the meeting's month has none", () => {
@@ -391,9 +397,10 @@ describe("edit screen", () => {
     );
     expect(offeredMeeting).toContain('name="place"');
     expect(offeredMeeting).toContain('value="The Ruby"');
+    expect(offeredMeeting).toContain('name="query"');
+    expect(offeredMeeting).toContain("Find this place");
     expect(offeredMeeting).not.toContain('name="enteredName"');
     expect(offeredMeeting).not.toContain("Save venue name");
-    expect(offeredMeeting).not.toContain("Find this place");
 
     const saved = renderToStaticMarkup(
       <EditScreen

@@ -15,15 +15,28 @@ const PIN_IS_PUBLIC =
 const idleSearch: PlaceSearchFormState = { status: "idle" };
 const idleWrite: PlaceWriteFormState = { status: "idle" };
 
-export function PlaceFinder({ month, placeLabel }: { month: string; placeLabel: string | null }) {
+export function PlaceFinder({
+  month,
+  query,
+  placeLabel,
+}: {
+  month: string | null;
+  query: string;
+  placeLabel?: string | null;
+}) {
   const [searchState, search, searching] = useActionState(searchPlaceAction, idleSearch);
   const [confirmState, confirm, confirming] = useActionState(confirmPlaceAction, idleWrite);
   const [clearState, clear, clearing] = useActionState(clearPlaceAction, idleWrite);
+  const canSearch = month !== null && query.trim().length > 0;
 
   return (
     <div className="place-finder">
       <h4>Real place</h4>
-      {placeLabel ? <p>Confirmed place: {placeLabel}</p> : <p>No place is confirmed for this month.</p>}
+      {placeLabel === undefined ? null : placeLabel ? (
+        <p>Confirmed place: {placeLabel}</p>
+      ) : (
+        <p>No place is confirmed for this month.</p>
+      )}
       <p id="place-public-warning" className="hint">
         {PIN_IS_PUBLIC}
       </p>
@@ -38,8 +51,9 @@ export function PlaceFinder({ month, placeLabel }: { month: string; placeLabel: 
       </p>
 
       <form className="edit-form" action={search} autoComplete="off">
-        <input type="hidden" name="month" value={month} />
-        <button type="submit" disabled={searching || confirming || clearing}>
+        <input type="hidden" name="month" value={month ?? ""} />
+        <input type="hidden" name="query" value={query} />
+        <button type="submit" disabled={!canSearch || searching || confirming || clearing}>
           {searching ? "Searching..." : "Find this place"}
         </button>
       </form>
@@ -48,7 +62,8 @@ export function PlaceFinder({ month, placeLabel }: { month: string; placeLabel: 
 
       {searchState.status === "matches" ? (
         <form className="edit-form" action={confirm} autoComplete="off">
-          <input type="hidden" name="month" value={month} />
+          <input type="hidden" name="month" value={month ?? ""} />
+          <input type="hidden" name="place" value={query} />
           <PlaceMatchList candidates={searchState.candidates} />
           <button type="submit" disabled={confirming || searching || clearing}>
             {confirming ? "Confirming..." : "Confirm this place"}
@@ -59,7 +74,7 @@ export function PlaceFinder({ month, placeLabel }: { month: string; placeLabel: 
 
       {placeLabel ? (
         <form className="edit-form" action={clear} autoComplete="off">
-          <input type="hidden" name="month" value={month} />
+          <input type="hidden" name="month" value={month ?? ""} />
           <button type="submit" className="secondary" disabled={clearing || searching || confirming}>
             {clearing ? "Clearing..." : "Clear confirmed place"}
           </button>

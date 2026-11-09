@@ -159,6 +159,22 @@ describe("place search", () => {
     expect(new Headers(calls[0]?.init?.headers).get("cookie")).toBeNull();
   });
 
+  test("a typed place is what gets searched, not the stored venue name", async () => {
+    const { calls, fetchImpl } = fetchSpy(
+      jsonResponse({
+        features: [feature({ label: "Brix Tavern, Portland", latitude: 47.62, longitude: -122.32, placeId: rubyId })],
+      }),
+    );
+
+    const result = await searchPlacesForRecordKeeper(
+      { month: march, query: "  Brix Tavern  " },
+      searchOptions(fetchImpl, keeper, async () => ({ pickId, enteredName: venueName })),
+    );
+
+    expect(result.status).toBe("matches");
+    expect(new URL(calls[0]?.url ?? "").searchParams.get("text")).toBe("Brix Tavern");
+  });
+
   test("a single result is still not chosen", async () => {
     const { fetchImpl } = fetchSpy(
       jsonResponse({
