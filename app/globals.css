@@ -443,3 +443,104 @@ main a:focus-visible {
 .month-list em {
   font-family: var(--font-fraunces), Georgia, serif;
 }
+
+.analytics-banner {
+  text-align: center;
+  padding: 1.6rem 1.2rem 0;
+}
+
+.analytics-banner h1 {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.analytics-banner a {
+  color: inherit;
+}
+
+.analytics-banner a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.total {
+  margin: 0;
+}
+
+.total + .total {
+  margin-top: 1.4rem;
+}
+
+.total-value {
+  display: block;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: clamp(2.6rem, 7vw, 4rem);
+  font-weight: 680;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.total-label {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.section-label {
+  margin: 2.4rem 0 0.6rem;
+  font-family: var(--font-outfit), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.genre-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.genre-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.72rem 0;
+  border-top: 1px solid rgba(26, 18, 12, 0.22);
+}
+
+.genre-list li:last-child {
+  border-bottom: 1px solid rgba(26, 18, 12, 0.22);
+}
+
+.genre-name {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 1.2rem;
+}
+
+.genre-count {
+  color: var(--meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (min-width: 721px) {
+  .total {
+    display: inline-block;
+    min-width: 12rem;
+    margin-right: 2rem;
+  }
+
+  .total + .total {
+    margin-top: 0;
+  }
+}

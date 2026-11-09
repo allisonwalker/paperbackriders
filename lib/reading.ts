@@ -1,0 +1,151 @@
+import { clubMonthStart, clubTimeZone, isMonthStart } from "./club-date";
+import { loadPicksOnOrBefore, type PickKind } from "./picks";
+
+export type ReadingPick = {
+  month: string;
+  kind: PickKind;
+  pageCount: number | null;
+  genre: string | null;
+};
+
+export type GenreTotal = {
+  label: string;
+  count: number;
+};
+
+export type ReadingTotals = {
+  bookCount: number;
+  pageTotal: number;
+  genres: GenreTotal[];
+};
+
+export type ReadingState = { status: "error" } | ({ status: "ready" } & ReadingTotals);
+
+const GENRE_CUTOFF = 5;
+const PAGE_COUNT_LIMIT = 100_000;
+
+type GenreGroup = {
+  count: number;
+  spellings: Map<string, number>;
+};
+
+export function readingTotals(rows: readonly ReadingPick[], currentMonth: string): ReadingTotals {
+  if (!isMonthStart(currentMonth)) {
+    throw new Error("The current club month must be the first calendar day");
+  }
+
+  let bookCount = 0;
+  let pageTotal = 0;
+  const groups = new Map<string, GenreGroup>();
+
+  for (const row of rows) {
+    if (!isMonthStart(row.month)) {
+      throw new Error("A pick month must be the first calendar day");
+    }
+    if (row.month > currentMonth) {
+      continue;
+    }
+    if (row.kind === "prompt") {
+      continue;
+    }
+    if (row.kind !== "book") {
+      throw new Error("A pick must be a book or a prompt");
+    }
+
+    bookCount += 1;
+    pageTotal += pagesToAdd(row.pageCount);
+    addGenre(groups, row.genre);
+  }
+
+  return { bookCount, pageTotal, genres: genresToShow(groups) };
+}
+
+export async function loadReadingTotals(options?: {
+  now?: Date;
+  timeZone?: string;
+  loadRows?: (currentMonth: string) => Promise<ReadingPick[]>;
+}): Promise<ReadingState> {
+  try {
+    const now = options?.now ?? new Date();
+    const timeZone = options?.timeZone ?? clubTimeZone();
+    const currentMonth = clubMonthStart(now, timeZone);
+    const rows = await (options?.loadRows ?? loadPicksOnOrBefore)(currentMonth);
+    return { status: "ready", ...readingTotals(rows, currentMonth) };
+  } catch (error) {
+    logReadingFailure(error);
+    return { status: "error" };
+  }
+}
+
+function pagesToAdd(pageCount: number | null): number {
+  if (pageCount == null) {
+    return 0;
+  }
+  if (!Number.isInteger(pageCount) || pageCount < 1 || pageCount > PAGE_COUNT_LIMIT) {
+    throw new Error("A page count must be a whole number from 1 to 100000");
+  }
+  return pageCount;
+}
+
+function addGenre(groups: Map<string, GenreGroup>, genre: string | null): void {
+  if (genre == null) {
+    return;
+  }
+  const spelling = genre.trim();
+  if (spelling.length === 0) {
+    return;
+  }
+
+  const key = spelling.toLocaleLowerCase("en-US");
+  const group = groups.get(key) ?? { count: 0, spellings: new Map<string, number>() };
+  group.count += 1;
+  group.spellings.set(spelling, (group.spellings.get(spelling) ?? 0) + 1);
+  groups.set(key, group);
+}
+
+function genresToShow(groups: Map<string, GenreGroup>): GenreTotal[] {
+  const ranked = [...groups.values()]
+    .map((group) => ({ label: displaySpelling(group.spellings), count: group.count }))
+    .sort((left, right) => right.count - left.count || compareLabels(left.label, right.label));
+
+  if (ranked.length < GENRE_CUTOFF) {
+    return ranked;
+  }
+
+  const cutoff = ranked[GENRE_CUTOFF - 1]?.count;
+  if (cutoff == null) {
+    return ranked;
+  }
+  return ranked.filter((group) => group.count >= cutoff);
+}
+
+/** When two spellings of one genre occur equally often, the earlier one in code-point order is shown. */
+function displaySpelling(spellings: Map<string, number>): string {
+  let best = "";
+  let bestCount = -1;
+
+  for (const [spelling, count] of spellings) {
+    if (count > bestCount || (count === bestCount && spelling < best)) {
+      best = spelling;
+      bestCount = count;
+    }
+  }
+
+  return best;
+}
+
+function compareLabels(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+}
+
+function logReadingFailure(error: unknown): void {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  const exposesSecret = /postgres(ql)?:\/\//i.test(message) || message.includes("DATABASE_URL");
+  console.error("reading totals query failed", exposesSecret ? "" : message);
+}
