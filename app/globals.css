@@ -311,16 +311,42 @@ h2 + .dateline {
 .edit-form select:focus-visible,
 .edit-form button:focus-visible,
 .month-list a:focus-visible,
+.record-tabs a:focus-visible,
 .logo h1 a:focus-visible,
 main a:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
+.record-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.5rem;
+  list-style: none;
+  margin: 1.6rem 0 0;
+  padding: 0;
+  border-bottom: 3px solid var(--ink);
+  max-width: 40rem;
+}
+
+.record-tabs a {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: clamp(1.45rem, 3vw, 1.85rem);
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  padding: 0.15rem 0 0.55rem;
+}
+
+.record-tabs a[aria-current="page"] {
+  box-shadow: inset 0 -0.4em 0 #ead7b6;
+}
+
 .editor-pick {
-  margin-top: 2rem;
-  padding-top: 1.4rem;
-  border-top: 3px solid var(--ink);
+  margin-top: 1.4rem;
 }
 
 .edit-heading {

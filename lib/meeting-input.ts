@@ -1,6 +1,6 @@
 import { isMonthStart } from "./club-date";
 import { PLACE_LIMIT } from "./meeting-copy";
-import { selectFeaturedPick } from "./picks";
+import { selectFeaturedPick } from "./featured-pick";
 import { normalizeMonth } from "./validation";
 
 /**
@@ -99,7 +99,7 @@ export function meetingFormValues(input: {
 
 export function meetingSavedHref(returnMonth: unknown): string {
   const month = normalizeMonth(returnMonth);
-  const query = new URLSearchParams({ meeting: "1" });
+  const query = new URLSearchParams({ tab: "meeting", meeting: "1" });
   if (month) query.set("month", month);
   return `/edit?${query.toString()}`;
 }

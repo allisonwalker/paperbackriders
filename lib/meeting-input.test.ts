@@ -101,8 +101,8 @@ describe("meeting input", () => {
   });
 
   test("the saved redirect stays on the month she was editing", () => {
-    expect(meetingSavedHref("2026-11")).toBe("/edit?meeting=1&month=2026-11-01");
-    expect(meetingSavedHref("2026-11-01T00:00:00.000Z")).toBe("/edit?meeting=1");
-    expect(meetingSavedHref(null)).toBe("/edit?meeting=1");
+    expect(meetingSavedHref("2026-11")).toBe("/edit?tab=meeting&meeting=1&month=2026-11-01");
+    expect(meetingSavedHref("2026-11-01T00:00:00.000Z")).toBe("/edit?tab=meeting&meeting=1");
+    expect(meetingSavedHref(null)).toBe("/edit?tab=meeting&meeting=1");
   });
 });

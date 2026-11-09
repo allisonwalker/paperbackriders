@@ -165,6 +165,9 @@ describe("public page", () => {
     expect(html).not.toContain("<form");
     expect(html).not.toContain("Save meeting");
     expect(html).not.toContain('name="place"');
+    expect(html).not.toContain(">Picks<");
+    expect(html).not.toContain(">Next meeting<");
+    expect(html).not.toContain("tab=meeting");
   });
 
   test("names the meeting's own pick when it is not the featured book", () => {

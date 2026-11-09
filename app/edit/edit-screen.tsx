@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState, type MouseEvent } from "react";
 import { formatClubMonth } from "@/lib/club-date";
 import type { EditAccess } from "@/lib/edit-access";
 import type { EditorMeetingState } from "@/lib/meeting";
@@ -6,7 +9,15 @@ import { meetingFormValues } from "@/lib/meeting-input";
 import type { EditorPicksState, PickRecord } from "@/lib/picks";
 import { monthInputValue, storedBookLookup } from "@/lib/validation";
 import type { VenueNameState } from "@/lib/visit-records";
-import type { EditorNotice } from "./editor-query";
+import {
+  editorQueryFromSearch,
+  MEETING_TAB_HREF,
+  noticeForTab,
+  picksTabHref,
+  readEditorQuery,
+  type EditorNotice,
+  type EditorTab,
+} from "./editor-query";
 import { signOutRecordKeeper } from "./actions";
 import { MeetingForm, type MeetingChoice } from "./meeting-form";
 import { DeletePickForm, PickForm, type PickFormValues } from "./pick-form";
@@ -30,6 +41,7 @@ type EditScreenProps =
       currentMonth: string;
       meeting: EditorMeetingState;
       venue: VenueNameState | null;
+      tab?: EditorTab;
     };
 
 export function EditScreen(props: EditScreenProps) {
@@ -60,13 +72,19 @@ function isSignedIn(props: EditScreenProps): props is Extract<EditScreenProps, {
   return props.access.status === "signed-in";
 }
 
+function editorViewKey(tab: EditorTab, notice: EditorNotice | null, month: string | null): string {
+  return `${tab}:${notice ?? ""}:${month ?? ""}`;
+}
+
 function EditorBody(props: EditScreenProps) {
   if (!isSignedIn(props)) {
     return props.access.status === "unavailable" ? <Unavailable /> : <SignedOut />;
   }
 
+  const tab = props.tab ?? "picks";
   return (
     <SignedIn
+      key={editorViewKey(tab, props.notice, props.selectedMonth)}
       email={props.access.email}
       records={props.records}
       selectedMonth={props.selectedMonth}
@@ -76,6 +94,7 @@ function EditorBody(props: EditScreenProps) {
       currentMonth={props.currentMonth}
       meeting={props.meeting}
       venue={props.venue}
+      tab={tab}
     />
   );
 }
@@ -94,12 +113,13 @@ function SignedIn({
   email,
   records,
   selectedMonth,
-  notice,
+  notice: initialNotice,
   defaultMonth,
   today,
   currentMonth,
   meeting,
   venue,
+  tab: initialTab,
 }: {
   email: string;
   records: EditorPicksState;
@@ -110,7 +130,11 @@ function SignedIn({
   currentMonth: string;
   meeting: EditorMeetingState;
   venue: VenueNameState | null;
+  tab: EditorTab;
 }) {
+  const [view, setView] = useState({ tab: initialTab, notice: initialNotice });
+  const tab = view.tab;
+  const notice = noticeForTab(tab, view.notice);
   const selected =
     records.status === "ready" && selectedMonth
       ? (records.picks.find((pick) => pick.month === selectedMonth) ?? null)
@@ -120,6 +144,32 @@ function SignedIn({
     : selectedMonth
       ? monthInputValue(selectedMonth)
       : defaultMonth;
+
+  useEffect(() => {
+    function onPop() {
+      if (window.location.pathname !== "/edit") return;
+      const next = readEditorQuery(editorQueryFromSearch(window.location.search));
+      setView({ tab: next.tab, notice: next.notice });
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  function chooseTab(event: MouseEvent<HTMLAnchorElement>, next: EditorTab) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    const nextUrl = new URL(event.currentTarget.href);
+    const target = `${nextUrl.pathname}${nextUrl.search}`;
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (next === tab && notice === null && current === target) return;
+    const historyState = window.history.state;
+    if (historyState && (historyState.__NA || historyState._N)) {
+      window.history.pushState(historyState, "", target);
+    } else {
+      window.history.pushState(null, "", target);
+    }
+    setView({ tab: next, notice: null });
+  }
 
   return (
     <>
@@ -131,30 +181,49 @@ function SignedIn({
       <form className="edit-form" action={signOutRecordKeeper}>
         <button type="submit">Sign out</button>
       </form>
-      <div className="editor-pick">
-        <h3 id="month-pick-heading" className="edit-heading">
-          {"Month\u2019s pick"}
-        </h3>
-        {notice && notice !== "meeting" ? <p role="status">{noticeText(notice)}</p> : null}
-        {records.status === "error" ? (
-          <p role="alert">The saved months could not be loaded.</p>
-        ) : (
-          <MonthList picks={records.picks} selectedMonth={selected?.month ?? null} adding={selectedMonth === null} />
-        )}
-        <PickForm key={`edit-${selected?.id ?? selectedMonth ?? "new"}`} values={formValues(selected, monthForInput)} />
-        {selected ? (
-          <VenueSection key={`venue-${selected.id}`} month={selected.month} venue={venue} meeting={meeting} />
-        ) : null}
-        {selected ? <DeletePickForm key={`delete-${selected.id}`} month={selected.month} /> : null}
-      </div>
-      <MeetingSection
-        records={records}
-        meeting={meeting}
-        today={today}
-        currentMonth={currentMonth}
-        returnMonth={selected?.month ?? null}
-        saved={notice === "meeting"}
-      />
+      <nav className="record-tabs" aria-label="Record keeping">
+        <a
+          href={picksTabHref(selectedMonth)}
+          aria-current={tab === "picks" ? "page" : undefined}
+          onClick={(event) => chooseTab(event, "picks")}
+        >
+          Picks
+        </a>
+        <a
+          href={MEETING_TAB_HREF}
+          aria-current={tab === "meeting" ? "page" : undefined}
+          onClick={(event) => chooseTab(event, "meeting")}
+        >
+          Next meeting
+        </a>
+      </nav>
+      {tab === "meeting" ? (
+        <MeetingSection
+          records={records}
+          meeting={meeting}
+          today={today}
+          currentMonth={currentMonth}
+          returnMonth={selected?.month ?? null}
+          saved={notice === "meeting"}
+        />
+      ) : (
+        <div className="editor-pick">
+          <h3 id="month-pick-heading" className="edit-heading">
+            {"Month\u2019s pick"}
+          </h3>
+          {notice ? <p role="status">{noticeText(notice)}</p> : null}
+          {records.status === "error" ? (
+            <p role="alert">The saved months could not be loaded.</p>
+          ) : (
+            <MonthList picks={records.picks} selectedMonth={selected?.month ?? null} adding={selectedMonth === null} />
+          )}
+          <PickForm key={`edit-${selected?.id ?? selectedMonth ?? "new"}`} values={formValues(selected, monthForInput)} />
+          {selected ? (
+            <VenueSection key={`venue-${selected.id}`} month={selected.month} venue={venue} meeting={meeting} />
+          ) : null}
+          {selected ? <DeletePickForm key={`delete-${selected.id}`} month={selected.month} /> : null}
+        </div>
+      )}
     </>
   );
 }

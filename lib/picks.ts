@@ -3,6 +3,9 @@ import { clubMonthStart, clubPickLabel, clubTimeZone, formatClubMonth, isMonthSt
 import { displayCoverUrl } from "./cover";
 import { getDb } from "./db/client";
 import { picks } from "./db/schema";
+import { selectFeaturedPick } from "./featured-pick";
+
+export { selectFeaturedPick };
 
 export type PickKind = "book" | "prompt";
 
@@ -86,27 +89,6 @@ function logPickFailure(label: string, error: unknown): void {
   }
 
   console.error(label, pickId ? { pickId, message } : message);
-}
-
-export function selectFeaturedPick<T extends { month: string }>(
-  rows: readonly T[],
-  currentMonth: string,
-): T | null {
-  if (!isMonthStart(currentMonth)) {
-    throw new Error("The current club month must be the first calendar day");
-  }
-
-  let featured: T | null = null;
-  for (const row of rows) {
-    if (!isMonthStart(row.month) || row.month > currentMonth) {
-      continue;
-    }
-    if (featured === null || row.month > featured.month) {
-      featured = row;
-    }
-  }
-
-  return featured;
 }
 
 export function toHero(pick: PickRecord): BookHero | PromptHero {
