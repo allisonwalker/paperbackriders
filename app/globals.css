@@ -43,8 +43,9 @@ img {
 }
 
 .logo img {
-  width: 148px;
+  width: 7.5rem;
   height: auto;
+  background: transparent;
 }
 
 .logo h1 {
@@ -72,10 +73,15 @@ main [role="alert"] {
 }
 
 .kicker {
-  margin: 0 0 0.8rem;
+  margin: 0 0 0.45rem;
   font-size: 0.75rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.cover-column {
+  display: flex;
+  flex-direction: column;
 }
 
 .spread {
@@ -107,15 +113,10 @@ h2 {
   font-size: 1.45rem;
 }
 
-ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.9rem;
+.meta {
   margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--meta);
   letter-spacing: 0.04em;
+  color: var(--meta);
 }
 
 [role="alert"] {
@@ -137,7 +138,7 @@ ul {
   }
 
   .logo img {
-    width: 124px;
+    width: 6.5rem;
   }
 
   .spread {

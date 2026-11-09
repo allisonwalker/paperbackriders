@@ -45,3 +45,9 @@ export function formatClubMonth(month: string): string {
     year: "numeric",
   }).format(date);
 }
+
+export function clubPickLabel(month: string): string {
+  const formatted = formatClubMonth(month);
+  const monthName = formatted.slice(0, formatted.lastIndexOf(" "));
+  return `${monthName}\u2019s pick`;
+}

@@ -1,5 +1,5 @@
 import { desc, lte } from "drizzle-orm";
-import { clubMonthStart, clubTimeZone, formatClubMonth, isMonthStart } from "./club-date";
+import { clubMonthStart, clubPickLabel, clubTimeZone, formatClubMonth, isMonthStart } from "./club-date";
 import { displayCoverUrl } from "./cover";
 import { getDb } from "./db/client";
 import { picks } from "./db/schema";
@@ -39,7 +39,7 @@ export type PromptHero = {
 export type FeaturedPickState =
   | { status: "error" }
   | { status: "empty" }
-  | { status: "ready"; hero: BookHero | PromptHero };
+  | { status: "ready"; pickLabel: string; hero: BookHero | PromptHero };
 
 type PickRow = typeof picks.$inferSelect;
 
@@ -154,7 +154,7 @@ export async function loadFeaturedPick(options?: {
     if (!pick) {
       return { status: "empty" };
     }
-    return { status: "ready", hero: toHero(pick) };
+    return { status: "ready", pickLabel: clubPickLabel(currentMonth), hero: toHero(pick) };
   } catch (error) {
     logFeaturedPickFailure(error);
     return { status: "error" };

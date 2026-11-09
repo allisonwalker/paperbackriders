@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { CLUB_TIMEZONE, clubMonthStart, clubTimeZone, formatClubMonth } from "./club-date";
+import { CLUB_TIMEZONE, clubMonthStart, clubPickLabel, clubTimeZone, formatClubMonth } from "./club-date";
 
 describe("club timezone", () => {
   test("defaults to America/Los_Angeles", () => {
@@ -30,5 +30,9 @@ describe("club month", () => {
 
   test("formats a month without shifting it to the previous day", () => {
     expect(formatClubMonth("2026-11-01")).toBe("November 2026");
+  });
+
+  test("names the current club month on the pick label", () => {
+    expect(clubPickLabel("2026-11-01")).toBe("November\u2019s pick");
   });
 });

@@ -5,6 +5,7 @@ import { PublicPage } from "./public-page";
 
 const book: FeaturedPickState = {
   status: "ready",
+  pickLabel: "November\u2019s pick",
   hero: {
     kind: "book",
     monthLabel: "October 2026",
@@ -17,33 +18,39 @@ const book: FeaturedPickState = {
   },
 };
 
-function render(state: FeaturedPickState, showLogo = false): string {
-  return renderToStaticMarkup(<PublicPage state={state} showLogo={showLogo} />);
+function render(state: FeaturedPickState): string {
+  return renderToStaticMarkup(<PublicPage state={state} />);
 }
 
 describe("public page", () => {
-  test("shows the club name, and the logo only when the file is present", () => {
-    const withoutLogo = render({ status: "empty" });
-    expect(withoutLogo).toContain("Paperback");
-    expect(withoutLogo).toContain("Riders");
-    expect(withoutLogo).not.toContain("paperback-riders-logo.png");
+  test("shows the club name and the smaller mark, with the pick label out of the header", () => {
+    const html = render({ status: "empty" });
+    const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
 
-    const withLogo = render({ status: "empty" }, true);
-    expect(withLogo).toContain('alt="Paperback Riders"');
-    expect(withLogo).toContain('src="/paperback-riders-logo.png"');
+    expect(header).toContain("Paperback");
+    expect(header).toContain("Riders");
+    expect(header).toContain('src="/paperback-riders-mark.jpg"');
+    expect(header).not.toContain("pick");
   });
 
-  test("renders a book and omits an empty field", () => {
+  test("puts the current month label immediately above the cover and the facts on one line", () => {
     const html = render(book);
-    expect(html).toContain("The Prestige");
-    expect(html).toContain("Christopher Priest");
-    expect(html).toContain("1995");
-    expect(html).toContain("404 pages");
-    expect(html).toContain("Fiction");
-    expect(html).toContain("https://covers.openlibrary.org/b/id/42-L.jpg");
+    const labelAt = html.indexOf("November’s pick");
+    const coverAt = html.indexOf('<img src="https://covers.openlibrary.org/b/id/42-L.jpg"');
+    const titleAt = html.indexOf("The Prestige");
 
-    const sparse = render({
+    expect(labelAt).toBeGreaterThan(-1);
+    expect(labelAt).toBeLessThan(coverAt);
+    expect(coverAt).toBeLessThan(titleAt);
+    expect(html).toContain("Christopher Priest");
+    expect(html).toContain("1995 · 404 pages · Fiction");
+    expect(html).not.toContain("October 2026");
+  });
+
+  test("omits an empty book field from that line", () => {
+    const html = render({
       status: "ready",
+      pickLabel: "November\u2019s pick",
       hero: {
         kind: "book",
         monthLabel: "October 2026",
@@ -55,14 +62,17 @@ describe("public page", () => {
         coverUrl: null,
       },
     });
-    expect(sparse).not.toContain("pages");
-    expect(sparse).not.toContain("1995");
-    expect(sparse).not.toContain("<img");
+
+    expect(html).toContain("November’s pick");
+    expect(html).not.toContain("pages");
+    expect(html).not.toContain("1995");
+    expect(html.indexOf("<img")).toBe(html.lastIndexOf("<img"));
   });
 
   test("renders a prompt without book fields", () => {
     const html = render({
       status: "ready",
+      pickLabel: "November\u2019s pick",
       hero: {
         kind: "prompt",
         monthLabel: "March 2026",
@@ -70,14 +80,16 @@ describe("public page", () => {
       },
     });
 
+    expect(html).toContain("November’s pick");
     expect(html).toContain("Read a book from the year you were born.");
-    expect(html).not.toContain("<img");
     expect(html).not.toContain("pages");
+    expect(html.indexOf("<img")).toBe(html.lastIndexOf("<img"));
   });
 
   test("does not render a cover from another host", () => {
     const html = render({
       status: "ready",
+      pickLabel: "November\u2019s pick",
       hero: {
         kind: "book",
         monthLabel: "October 2026",
@@ -91,7 +103,6 @@ describe("public page", () => {
     });
 
     expect(html).not.toContain("example.com");
-    expect(html).not.toContain("<img");
   });
 
   test("leaves the hero empty when there is no pick", () => {
@@ -99,6 +110,7 @@ describe("public page", () => {
     expect(html).toContain('aria-label="This month&#x27;s pick"');
     expect(html).not.toContain("<h2");
     expect(html).not.toContain("could not load");
+    expect(html).not.toContain("’s pick");
   });
 
   test("says the page could not load, which is different from an empty club", () => {
@@ -106,5 +118,6 @@ describe("public page", () => {
     expect(html).toContain("This page could not load.");
     expect(html).not.toContain("This month&#x27;s pick");
     expect(html).not.toContain("<h2");
+    expect(html).toContain('src="/paperback-riders-mark.jpg"');
   });
 });

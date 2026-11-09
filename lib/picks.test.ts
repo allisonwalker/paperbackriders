@@ -51,7 +51,11 @@ describe("featured pick", () => {
     });
 
     expect(seen).toEqual(["2026-11-01"]);
-    expect(state).toMatchObject({ status: "ready", hero: { kind: "book", title: "Title 2026-10-01" } });
+    expect(state).toMatchObject({
+      status: "ready",
+      pickLabel: "November\u2019s pick",
+      hero: { kind: "book", title: "Title 2026-10-01", monthLabel: "October 2026" },
+    });
   });
 
   test("says the page could not load when the query fails", async () => {
