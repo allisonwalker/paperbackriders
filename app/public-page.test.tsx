@@ -1,11 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { NO_UPCOMING_MEETING, type MeetingView } from "@/lib/meeting";
-import type { FeaturedPickState } from "@/lib/picks";
+import type { FeaturedPickState, HistoryEntry, HistoryState } from "@/lib/picks";
 import { PublicPage } from "./public-page";
 
 const book: FeaturedPickState = {
   status: "ready",
+  month: "2026-10-01",
   pickLabel: "November\u2019s pick",
   hero: {
     kind: "book",
@@ -31,8 +32,14 @@ const upcoming: MeetingView = {
   discussing: "The Prestige by Christopher Priest",
 };
 
-function render(featured: FeaturedPickState, meeting: MeetingView = none): string {
-  return renderToStaticMarkup(<PublicPage featured={featured} meeting={meeting} />);
+const noHistory: HistoryState = { status: "ready", entries: [] };
+
+function render(
+  featured: FeaturedPickState,
+  meeting: MeetingView = none,
+  history: HistoryState = noHistory,
+): string {
+  return renderToStaticMarkup(<PublicPage featured={featured} meeting={meeting} history={history} />);
 }
 
 describe("public page", () => {
@@ -63,6 +70,7 @@ describe("public page", () => {
   test("omits an empty book field from that line", () => {
     const html = render({
       status: "ready",
+      month: "2026-10-01",
       pickLabel: "November\u2019s pick",
       hero: {
         kind: "book",
@@ -85,6 +93,7 @@ describe("public page", () => {
   test("renders a prompt without book fields", () => {
     const html = render({
       status: "ready",
+      month: "2026-03-01",
       pickLabel: "November\u2019s pick",
       hero: {
         kind: "prompt",
@@ -102,6 +111,7 @@ describe("public page", () => {
   test("does not render a cover from another host", () => {
     const html = render({
       status: "ready",
+      month: "2026-10-01",
       pickLabel: "November\u2019s pick",
       hero: {
         kind: "book",
@@ -168,6 +178,7 @@ describe("public page", () => {
     const html = render(
       {
         status: "ready",
+        month: "2026-03-01",
         pickLabel: "November\u2019s pick",
         hero: {
           kind: "prompt",
@@ -197,6 +208,74 @@ describe("public page", () => {
     expect(html).not.toContain("7:00");
     expect(html).not.toContain("Priya");
     expect(html).not.toContain("discussing");
+  });
+
+  test("lists every month newest first under the pick, marking the featured month", () => {
+    const entries: HistoryEntry[] = [
+      {
+        kind: "book",
+        month: "2026-12-01",
+        monthLabel: "December 2026",
+        title: "Piranesi",
+        author: "Susanna Clarke",
+        pageCount: 272,
+        marked: false,
+      },
+      {
+        kind: "book",
+        month: "2026-10-01",
+        monthLabel: "October 2026",
+        title: "The Prestige",
+        author: "Christopher Priest",
+        pageCount: 404,
+        marked: true,
+      },
+      {
+        kind: "prompt",
+        month: "2026-03-01",
+        monthLabel: "March 2026",
+        promptText: "Read a book from the year you were born.",
+        marked: false,
+      },
+    ];
+    const html = render(book, none, { status: "ready", entries });
+    const heroAt = html.indexOf("The Prestige");
+    const decemberAt = html.indexOf("December 2026");
+    const octoberAt = html.indexOf("October 2026");
+    const marchAt = html.indexOf("March 2026");
+    const list = html.slice(html.indexOf('aria-label="Reading history"'));
+
+    expect(html).toContain("What we’ve read");
+    expect(decemberAt).toBeGreaterThan(heroAt);
+    expect(octoberAt).toBeGreaterThan(decemberAt);
+    expect(marchAt).toBeGreaterThan(octoberAt);
+    expect(list).toContain("Piranesi");
+    expect(list).toContain("Susanna Clarke · 272 pages");
+    expect(list).toContain("Christopher Priest · 404 pages");
+    expect(list).toContain("<em");
+    expect(list).toContain("Read a book from the year you were born.");
+    expect(list).toContain('aria-current="true"');
+    expect(list).not.toContain("1995");
+    expect(list).not.toContain("Fiction");
+    expect(list).not.toContain("<img");
+    expect(list).not.toContain("<select");
+    expect(list).not.toContain("<input");
+    expect(list).not.toContain("openlibrary.org");
+  });
+
+  test("shows the history region with no months when the club has no picks", () => {
+    const html = render({ status: "empty" });
+    const list = html.slice(html.indexOf('aria-label="Reading history"'));
+    expect(list).toContain("<ol");
+    expect(list).not.toContain("<li");
+    expect(html).not.toContain("could not load");
+  });
+
+  test("does not show an empty history when the page could not load", () => {
+    const html = render({ status: "error" }, none, { status: "error" });
+    expect(html).toContain("This page could not load.");
+    expect(html).not.toContain("Reading history");
+    expect(html).not.toContain("What we’ve read");
   });
 
   test("renders the place as text, including an address that looks like contact details", () => {

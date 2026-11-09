@@ -39,7 +39,29 @@ export type PromptHero = {
 export type FeaturedPickState =
   | { status: "error" }
   | { status: "empty" }
-  | { status: "ready"; pickLabel: string; hero: BookHero | PromptHero };
+  | { status: "ready"; month: string; pickLabel: string; hero: BookHero | PromptHero };
+
+export type BookHistoryEntry = {
+  kind: "book";
+  month: string;
+  monthLabel: string;
+  title: string;
+  author: string;
+  pageCount: number | null;
+  marked: boolean;
+};
+
+export type PromptHistoryEntry = {
+  kind: "prompt";
+  month: string;
+  monthLabel: string;
+  promptText: string;
+  marked: boolean;
+};
+
+export type HistoryEntry = BookHistoryEntry | PromptHistoryEntry;
+
+export type HistoryState = { status: "error" } | { status: "ready"; entries: HistoryEntry[] };
 
 type PickRow = typeof picks.$inferSelect;
 
@@ -51,17 +73,17 @@ function blankToNull(value: string | null | undefined): string | null {
   return trimmed.length === 0 ? null : trimmed;
 }
 
-function logFeaturedPickFailure(error: unknown): void {
+function logPickFailure(label: string, error: unknown): void {
   const message = error instanceof Error ? error.message : "Unknown error";
   const pickId = /Pick ([0-9a-f-]+)/i.exec(message)?.[1];
   const exposesSecret = /postgres(ql)?:\/\//i.test(message) || message.includes("DATABASE_URL");
 
   if (exposesSecret) {
-    console.error("featured pick query failed", pickId ? { pickId } : "");
+    console.error(label, pickId ? { pickId } : "");
     return;
   }
 
-  console.error("featured pick query failed", pickId ? { pickId, message } : message);
+  console.error(label, pickId ? { pickId, message } : message);
 }
 
 export function selectFeaturedPick<T extends { month: string }>(
@@ -130,6 +152,57 @@ export function mapPickRow(row: PickRow): PickRecord {
   };
 }
 
+export function toHistory(rows: readonly PickRecord[], featuredMonth: string | null): HistoryEntry[] {
+  const ordered = [...rows].sort((left, right) => (left.month < right.month ? 1 : left.month > right.month ? -1 : 0));
+
+  return ordered.map((pick) => {
+    const monthLabel = formatClubMonth(pick.month);
+    const marked = featuredMonth !== null && pick.month === featuredMonth;
+
+    if (pick.kind === "prompt") {
+      const promptText = blankToNull(pick.promptText);
+      if (!promptText) {
+        throw new Error(`Pick ${pick.id} is missing its prompt text`);
+      }
+      return { kind: "prompt", month: pick.month, monthLabel, promptText, marked };
+    }
+
+    const title = blankToNull(pick.title);
+    const author = blankToNull(pick.author);
+    if (!title || !author) {
+      throw new Error(`Pick ${pick.id} is missing its title or author`);
+    }
+
+    return {
+      kind: "book",
+      month: pick.month,
+      monthLabel,
+      title,
+      author,
+      pageCount: pick.pageCount,
+      marked,
+    };
+  });
+}
+
+export async function loadAllPicks(): Promise<PickRecord[]> {
+  const rows = await getDb().select().from(picks).orderBy(desc(picks.month));
+  return rows.map(mapPickRow);
+}
+
+export async function loadHistory(options?: {
+  markedMonth?: string | null;
+  loadRows?: () => Promise<PickRecord[]>;
+}): Promise<HistoryState> {
+  try {
+    const rows = await (options?.loadRows ?? loadAllPicks)();
+    return { status: "ready", entries: toHistory(rows, options?.markedMonth ?? null) };
+  } catch (error) {
+    logPickFailure("reading history query failed", error);
+    return { status: "error" };
+  }
+}
+
 export async function loadPicksOnOrBefore(currentMonth: string): Promise<PickRecord[]> {
   const rows = await getDb()
     .select()
@@ -154,9 +227,9 @@ export async function loadFeaturedPick(options?: {
     if (!pick) {
       return { status: "empty" };
     }
-    return { status: "ready", pickLabel: clubPickLabel(currentMonth), hero: toHero(pick) };
+    return { status: "ready", month: pick.month, pickLabel: clubPickLabel(currentMonth), hero: toHero(pick) };
   } catch (error) {
-    logFeaturedPickFailure(error);
+    logPickFailure("featured pick query failed", error);
     return { status: "error" };
   }
 }

@@ -1,9 +1,17 @@
 import { NO_UPCOMING_MEETING, type MeetingView } from "@/lib/meeting";
-import type { BookHero, FeaturedPickState, PromptHero } from "@/lib/picks";
+import type { BookHero, FeaturedPickState, HistoryEntry, HistoryState, PromptHero } from "@/lib/picks";
 
 const MARK_SRC = "/paperback-riders-mark.jpg";
 
-export function PublicPage({ featured, meeting }: { featured: FeaturedPickState; meeting: MeetingView }) {
+export function PublicPage({
+  featured,
+  meeting,
+  history,
+}: {
+  featured: FeaturedPickState;
+  meeting: MeetingView;
+  history: HistoryState;
+}) {
   return (
     <>
       <header className="brand">
@@ -18,12 +26,13 @@ export function PublicPage({ featured, meeting }: { featured: FeaturedPickState;
         </div>
       </header>
       <main>
-        {featured.status === "error" ? (
+        {featured.status === "error" || history.status === "error" ? (
           <p role="alert">This page could not load.</p>
         ) : (
           <section aria-label="This month's pick">
             {featured.status === "ready" ? <Hero pickLabel={featured.pickLabel} hero={featured.hero} /> : null}
             <Dateline meeting={meeting} />
+            <History entries={history.entries} />
           </section>
         )}
       </main>
@@ -75,6 +84,33 @@ function Dateline({ meeting }: { meeting: MeetingView }) {
         {meeting.place} · discussing {meeting.discussing}
       </span>
     </p>
+  );
+}
+
+function History({ entries }: { entries: HistoryEntry[] }) {
+  return (
+    <section className="shelf" aria-label="Reading history">
+      <h3>What we’ve read</h3>
+      <ol className="bib">
+        {entries.map((entry) =>
+          entry.kind === "prompt" ? (
+            <li key={entry.month} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
+              <span className="when">{entry.monthLabel}</span>
+              <em className="prompt-line">{entry.promptText}</em>
+            </li>
+          ) : (
+            <li key={entry.month} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
+              <span className="when">{entry.monthLabel}</span>
+              <span className="title">{entry.title}</span>
+              <span className="tail">
+                {entry.author}
+                {entry.pageCount != null ? ` · ${entry.pageCount} pages` : ""}
+              </span>
+            </li>
+          ),
+        )}
+      </ol>
+    </section>
   );
 }
 
