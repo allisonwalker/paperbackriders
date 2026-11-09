@@ -37,6 +37,8 @@ export type PickInput = {
   pageCount?: unknown;
   genre?: unknown;
   promptText?: unknown;
+  lookupSource?: unknown;
+  lookupKey?: unknown;
 };
 
 export type BookDraft = {
@@ -49,8 +51,8 @@ export type BookDraft = {
   pageCount: number | null;
   genre: string | null;
   promptText: null;
-  lookupSource: "manual";
-  lookupKey: null;
+  lookupSource: "manual" | "open_library";
+  lookupKey: string | null;
 };
 
 export type PromptDraft = {
@@ -83,7 +85,27 @@ const FORM_FIELDS = [
   "pageCount",
   "genre",
   "promptText",
+  "lookupSource",
+  "lookupKey",
 ] as const satisfies readonly (keyof PickInput)[];
+
+const OPEN_LIBRARY_WORK_ID = /^OL[1-9]\d{0,11}W$/;
+
+/** An Open Library work id, such as OL45883W. Anything else is not a lookup key. */
+export function openLibraryWorkId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const id = value.trim();
+  return OPEN_LIBRARY_WORK_ID.test(id) ? id : null;
+}
+
+export function storedBookLookup(
+  source: string | null | undefined,
+  key: string | null | undefined,
+): { lookupSource: "manual" | "open_library"; lookupKey: string } {
+  const workId = openLibraryWorkId(key);
+  if (source === "open_library" && workId) return { lookupSource: "open_library", lookupKey: workId };
+  return { lookupSource: "manual", lookupKey: "" };
+}
 
 export function pickInputFromForm(formData: FormData): PickInput {
   const input: PickInput = {};
@@ -187,10 +209,18 @@ export function parsePickForm(input: PickInput): ParseResult {
       pageCount: pageCount.value,
       genre: genre.value,
       promptText: null,
-      lookupSource: "manual",
-      lookupKey: null,
+      ...bookLookup(input.lookupSource, input.lookupKey),
     },
   };
+}
+
+function bookLookup(
+  source: unknown,
+  key: unknown,
+): { lookupSource: "manual" | "open_library"; lookupKey: string | null } {
+  const workId = openLibraryWorkId(key);
+  if (source === "open_library" && workId) return { lookupSource: "open_library", lookupKey: workId };
+  return { lookupSource: "manual", lookupKey: null };
 }
 
 function normalizeKind(value: unknown): "book" | "prompt" | null {

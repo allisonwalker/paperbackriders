@@ -17,6 +17,8 @@ export type PickRecord = {
   coverUrl: string | null;
   pageCount: number | null;
   genre: string | null;
+  lookupSource: string | null;
+  lookupKey: string | null;
 };
 
 export type BookHero = {
@@ -149,6 +151,8 @@ export function mapPickRow(row: PickRow): PickRecord {
     coverUrl: row.coverUrl,
     pageCount: row.pageCount,
     genre: row.genre,
+    lookupSource: row.lookupSource,
+    lookupKey: row.lookupKey,
   };
 }
 

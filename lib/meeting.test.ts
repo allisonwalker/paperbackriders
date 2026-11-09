@@ -18,6 +18,8 @@ function book(overrides: Partial<PickRecord> = {}): PickRecord {
     coverUrl: null,
     pageCount: 404,
     genre: "Fiction",
+    lookupSource: null,
+    lookupKey: null,
     ...overrides,
   };
 }

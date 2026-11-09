@@ -1,7 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
+import { fieldsFromMatch } from "@/lib/books/match";
 import { PICK_TEXT_LIMITS } from "@/lib/validation";
+import { BookSearch } from "./book-search";
 import { deleteMonthPick, saveMonthPick, type DeleteFormState, type PickFormState } from "./pick-actions";
 
 export type PickFormValues = {
@@ -16,17 +18,31 @@ export type PickFormValues = {
   genre: string;
   coverUrl: string;
   promptText: string;
+  lookupSource: "manual" | "open_library";
+  lookupKey: string;
 };
 
 const idleSave: PickFormState = { status: "idle" };
 const idleDelete: DeleteFormState = { status: "idle" };
 
 export function PickForm({ values }: { values: PickFormValues }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [state, action, pending] = useActionState(saveMonthPick, idleSave);
+  const [kind, setKind] = useState(values.kind);
+  const [book, setBook] = useState({
+    title: values.title,
+    author: values.author,
+    publishedYear: values.publishedYear,
+    pageCount: values.pageCount,
+    genre: values.genre,
+    coverUrl: values.coverUrl,
+    lookupSource: values.lookupSource,
+    lookupKey: values.lookupKey,
+  });
   const errors = state.errors ?? {};
 
   return (
-    <form className="edit-form pick-form" action={action} autoComplete="off">
+    <form ref={formRef} className="edit-form pick-form" action={action} autoComplete="off">
       {state.status === "invalid" ? (
         <p id="pick-form-error" role="alert">
           This month needs a correction before it can be saved.
@@ -65,22 +81,42 @@ export function PickForm({ values }: { values: PickFormValues }) {
       >
         <legend>Book or prompt</legend>
         <label>
-          <input type="radio" name="kind" value="book" defaultChecked={values.kind === "book"} required />
+          <input
+            type="radio"
+            name="kind"
+            value="book"
+            checked={kind === "book"}
+            required
+            onChange={() => setKind("book")}
+          />
           Book
         </label>
         <label>
-          <input type="radio" name="kind" value="prompt" defaultChecked={values.kind === "prompt"} />
+          <input type="radio" name="kind" value="prompt" checked={kind === "prompt"} onChange={() => setKind("prompt")} />
           Prompt
         </label>
         <FieldError id="pick-kind-error" message={errors.kind} />
       </fieldset>
 
       <div className="for-book">
+        {kind === "book" ? (
+          <BookSearch
+            getKind={() => (formRef.current ? selectedKind(formRef.current) : kind)}
+            onApply={(match) => {
+              const applied = fieldsFromMatch(match);
+              if (!applied || selectedKind(formRef.current) !== "book") return;
+              setBook(applied);
+            }}
+          />
+        ) : null}
+        <input type="hidden" name="lookupSource" value={book.lookupSource} />
+        <input type="hidden" name="lookupKey" value={book.lookupKey} />
         <TextField
           id="pick-title"
           name="title"
           label="Title"
-          defaultValue={values.title}
+          value={book.title}
+          onValueChange={(title) => setBook((current) => ({ ...current, title }))}
           maxLength={PICK_TEXT_LIMITS.title}
           error={errors.title}
         />
@@ -88,7 +124,8 @@ export function PickForm({ values }: { values: PickFormValues }) {
           id="pick-author"
           name="author"
           label="Author"
-          defaultValue={values.author}
+          value={book.author}
+          onValueChange={(author) => setBook((current) => ({ ...current, author }))}
           maxLength={PICK_TEXT_LIMITS.author}
           error={errors.author}
         />
@@ -96,7 +133,8 @@ export function PickForm({ values }: { values: PickFormValues }) {
           id="pick-year"
           name="publishedYear"
           label="Publication year"
-          defaultValue={values.publishedYear}
+          value={book.publishedYear}
+          onValueChange={(publishedYear) => setBook((current) => ({ ...current, publishedYear }))}
           inputMode="numeric"
           error={errors.publishedYear}
           optional
@@ -105,7 +143,8 @@ export function PickForm({ values }: { values: PickFormValues }) {
           id="pick-pages"
           name="pageCount"
           label="Page count"
-          defaultValue={values.pageCount}
+          value={book.pageCount}
+          onValueChange={(pageCount) => setBook((current) => ({ ...current, pageCount }))}
           inputMode="numeric"
           error={errors.pageCount}
           optional
@@ -114,7 +153,8 @@ export function PickForm({ values }: { values: PickFormValues }) {
           id="pick-genre"
           name="genre"
           label="Genre"
-          defaultValue={values.genre}
+          value={book.genre}
+          onValueChange={(genre) => setBook((current) => ({ ...current, genre }))}
           maxLength={PICK_TEXT_LIMITS.genre}
           error={errors.genre}
           optional
@@ -123,7 +163,8 @@ export function PickForm({ values }: { values: PickFormValues }) {
           id="pick-cover"
           name="coverUrl"
           label="Cover link"
-          defaultValue={values.coverUrl}
+          value={book.coverUrl}
+          onValueChange={(coverUrl) => setBook((current) => ({ ...current, coverUrl }))}
           maxLength={PICK_TEXT_LIMITS.cover}
           error={errors.coverUrl}
           hint="Optional. Only an Open Library cover link is kept."
@@ -168,11 +209,18 @@ export function DeletePickForm({ month }: { month: string }) {
   );
 }
 
+function selectedKind(form: HTMLFormElement | null): "book" | "prompt" {
+  if (!form) return "book";
+  const value = new FormData(form).get("kind");
+  return value === "prompt" ? "prompt" : "book";
+}
+
 function TextField({
   id,
   name,
   label,
-  defaultValue,
+  value,
+  onValueChange,
   maxLength,
   error,
   hint,
@@ -183,7 +231,8 @@ function TextField({
   id: string;
   name: string;
   label: string;
-  defaultValue: string;
+  value: string;
+  onValueChange: (value: string) => void;
   maxLength?: number;
   error?: string;
   hint?: string;
@@ -204,7 +253,8 @@ function TextField({
       <input
         id={id}
         name={name}
-        defaultValue={defaultValue}
+        value={value}
+        onChange={(event) => onValueChange(event.target.value)}
         maxLength={maxLength}
         inputMode={inputMode}
         spellCheck={spellCheck}

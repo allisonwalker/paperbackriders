@@ -158,13 +158,14 @@ describe("book and prompt rules", () => {
     });
   });
 
-  test("reads only the form fields, and ignores a file input", () => {
+  test("reads the form fields, including a chosen Open Library work, and ignores a file input", () => {
     const form = new FormData();
     form.set("month", "2026-11");
     form.set("kind", "book");
     form.set("title", " Title ");
     form.set("author", " Author ");
     form.set("lookupSource", "open_library");
+    form.set("lookupKey", "OL45883W");
     form.set("coverUrl", new Blob(["nope"]), "cover.jpg");
 
     expect(pickInputFromForm(form)).toEqual({
@@ -177,6 +178,44 @@ describe("book and prompt rules", () => {
       pageCount: "",
       genre: "",
       promptText: "",
+      lookupSource: "open_library",
+      lookupKey: "OL45883W",
     });
+  });
+
+  test("stores an Open Library work id when she chose that match", () => {
+    const parsed = parsePickForm(
+      book({
+        lookupSource: "open_library",
+        lookupKey: " OL45883W ",
+        publishedYear: "1969",
+        genre: "Science fiction",
+      }),
+    );
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok || parsed.draft.kind !== "book") return;
+    expect(parsed.draft.lookupSource).toBe("open_library");
+    expect(parsed.draft.lookupKey).toBe("OL45883W");
+    expect(parsed.draft.title).toBe("The Left Hand of Darkness");
+  });
+
+  test("a key that is not an Open Library work is saved as a hand entry", () => {
+    for (const lookupKey of ["https://evil.example/works/OL45883W", "OL45883M", "OL45883W/../secret", ""]) {
+      const parsed = parsePickForm(book({ lookupSource: "open_library", lookupKey }));
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok || parsed.draft.kind !== "book") continue;
+      expect(parsed.draft.lookupSource).toBe("manual");
+      expect(parsed.draft.lookupKey).toBeNull();
+    }
+  });
+
+  test("a prompt drops a lookup even when the form sends one", () => {
+    const parsed = parsePickForm(prompt({ lookupSource: "open_library", lookupKey: "OL45883W" }));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.draft.lookupSource).toBeNull();
+    expect(parsed.draft.lookupKey).toBeNull();
+    expect(parsed.draft.kind).toBe("prompt");
   });
 });

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatClubMonth } from "@/lib/club-date";
 import type { EditAccess } from "@/lib/edit-access";
 import type { EditorPicksState, PickRecord } from "@/lib/picks";
-import { monthInputValue } from "@/lib/validation";
+import { monthInputValue, storedBookLookup } from "@/lib/validation";
 import type { EditorNotice } from "./editor-query";
 import { signOutRecordKeeper } from "./actions";
 import { DeletePickForm, PickForm, type PickFormValues } from "./pick-form";
@@ -185,8 +185,13 @@ function formValues(selected: PickRecord | null, monthForInput: string): PickFor
       genre: "",
       coverUrl: "",
       promptText: "",
+      lookupSource: "manual",
+      lookupKey: "",
     };
   }
+
+  const lookup =
+    selected.kind === "book" ? storedBookLookup(selected.lookupSource, selected.lookupKey) : storedBookLookup(null, null);
 
   return {
     monthLocked: true,
@@ -200,6 +205,8 @@ function formValues(selected: PickRecord | null, monthForInput: string): PickFor
     genre: selected.kind === "book" ? (selected.genre ?? "") : "",
     coverUrl: selected.kind === "book" ? (selected.coverUrl ?? "") : "",
     promptText: selected.kind === "prompt" ? (selected.promptText ?? "") : "",
+    lookupSource: lookup.lookupSource,
+    lookupKey: lookup.lookupKey,
   };
 }
 

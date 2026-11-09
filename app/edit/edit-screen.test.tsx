@@ -16,6 +16,8 @@ function book(): PickRecord {
     coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg",
     pageCount: 304,
     genre: "Science fiction",
+    lookupSource: "open_library",
+    lookupKey: "OL45883W",
   };
 }
 
@@ -31,6 +33,8 @@ function prompt(): PickRecord {
     coverUrl: null,
     pageCount: null,
     genre: null,
+    lookupSource: null,
+    lookupKey: null,
   };
 }
 
@@ -51,6 +55,7 @@ describe("edit screen", () => {
     expect(html).not.toContain("Sign out");
     expect(html).not.toContain("Save month");
     expect(html).not.toContain('name="title"');
+    expect(html).not.toContain("Find a book");
     expect(html).not.toContain("prompt");
     expect(html).toContain('href="/"');
   });
@@ -103,6 +108,12 @@ describe("edit screen", () => {
     expect(html).not.toContain('name="place"');
     expect(html).not.toContain("Next meeting");
     expect(html).not.toContain(MEETING_BLOCKS_DELETE);
+    expect(html).toContain("Find a book");
+    expect(html).toContain(">Search<");
+    expect(html).not.toContain("Use this match");
+    expect(html).toContain('name="lookupSource"');
+    expect(html).toContain('value="open_library"');
+    expect(html).toContain('value="OL45883W"');
     expect(html.match(/<form/g)).toHaveLength(3);
   });
 
@@ -117,6 +128,9 @@ describe("edit screen", () => {
     expect(html).not.toContain('value="1969"');
     expect(html).toContain("March 2026");
     expect(html).toContain("Delete this month");
+    expect(html).not.toContain("Find a book");
+    expect(html).not.toContain("OL45883W");
+    expect(html).toContain('value="manual"');
   });
 
   test("an empty club offers a new month and a failed load is not an empty list", () => {
@@ -133,6 +147,9 @@ describe("edit screen", () => {
     expect(empty).toContain('type="month"');
     expect(empty).toContain('value="2026-11"');
     expect(empty).toContain("Save month");
+    expect(empty).toContain("Find a book");
+    expect(empty).toContain('value="manual"');
+    expect(empty).not.toContain("OL45883W");
     expect(empty).not.toContain("Delete this month");
 
     const failed = renderToStaticMarkup(

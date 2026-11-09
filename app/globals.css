@@ -361,6 +361,37 @@ main a:focus-visible {
   display: none;
 }
 
+.book-search {
+  display: grid;
+  gap: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.edit-form button.secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.match-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.match-list li {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.match-title {
+  margin: 0;
+  font-weight: 500;
+}
+
 .field-label {
   display: block;
   margin-bottom: 0.25rem;

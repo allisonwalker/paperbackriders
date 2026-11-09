@@ -1,9 +1,10 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { CLUB_TIMEZONE } from "./club-date";
 import {
   loadEditorPicks,
   loadFeaturedPick,
   loadHistory,
+  mapPickRow,
   selectFeaturedPick,
   toHero,
   toHistory,
@@ -22,6 +23,8 @@ function pick(month: string, overrides: Partial<PickRecord> = {}): PickRecord {
     coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg",
     pageCount: 320,
     genre: "Fiction",
+    lookupSource: null,
+    lookupKey: null,
     ...overrides,
   };
 }
@@ -228,6 +231,43 @@ describe("hero fields", () => {
   test("drops a cover whose host is not covers.openlibrary.org", () => {
     const hero = toHero(pick("2026-10-01", { coverUrl: "https://example.com/cover.jpg" }));
     expect(hero).toMatchObject({ kind: "book", coverUrl: null });
+  });
+
+  test("keeps a stored Open Library id on the record and does not ask Open Library to draw it", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("no network"));
+    try {
+      const record = mapPickRow({
+        id: "pick-1",
+        month: "2026-11-01",
+        kind: "book",
+        promptText: null,
+        title: "The Left Hand of Darkness",
+        author: "Ursula K. Le Guin",
+        publishedYear: 1969,
+        coverUrl: "https://covers.openlibrary.org/b/id/8739161-L.jpg",
+        pageCount: 304,
+        genre: "Science fiction",
+        lookupSource: "open_library",
+        lookupKey: "OL45883W",
+      });
+
+      expect(record.lookupSource).toBe("open_library");
+      expect(record.lookupKey).toBe("OL45883W");
+      expect(toHero(record)).toEqual({
+        kind: "book",
+        monthLabel: "November 2026",
+        title: "The Left Hand of Darkness",
+        author: "Ursula K. Le Guin",
+        publishedYear: 1969,
+        pageCount: 304,
+        genre: "Science fiction",
+        coverUrl: "https://covers.openlibrary.org/b/id/8739161-L.jpg",
+      });
+      expect(toHero(record)).not.toHaveProperty("lookupKey");
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   test("shows prompt text and none of the book fields", () => {

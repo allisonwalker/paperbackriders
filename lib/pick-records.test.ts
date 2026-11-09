@@ -26,8 +26,6 @@ function book(overrides: Record<string, unknown> = {}) {
     pageCount: "",
     genre: "",
     promptText: "This must not be stored on a book",
-    lookupSource: "open_library",
-    lookupKey: "OL123W",
     ...overrides,
   };
 }
@@ -164,6 +162,49 @@ describe("record keeper writes", () => {
     } finally {
       fetchSpy.mockRestore();
     }
+  });
+
+  test("stores a chosen Open Library work without calling Open Library again", async () => {
+    const memory = memoryStore();
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("no network"));
+
+    try {
+      const result = await savePick(
+        book({
+          lookupSource: "open_library",
+          lookupKey: "OL45883W",
+          publishedYear: "1969",
+          pageCount: "304",
+          genre: "Science fiction",
+          coverUrl: "https://covers.openlibrary.org/b/id/8739161-L.jpg",
+        }),
+        options(memory.store),
+      );
+
+      expect(result).toMatchObject({ status: "saved", coverDropped: false });
+      expect(memory.rows[0]).toMatchObject({
+        lookupSource: "open_library",
+        lookupKey: "OL45883W",
+        publishedYear: 1969,
+        pageCount: 304,
+        genre: "Science fiction",
+        coverUrl: "https://covers.openlibrary.org/b/id/8739161-L.jpg",
+      });
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  test("a forged lookup key is stored as a hand entry and still saves", async () => {
+    const memory = memoryStore();
+    const result = await savePick(
+      book({ lookupSource: "open_library", lookupKey: "https://evil.example/works/OL1W", title: "Typed" }),
+      options(memory.store),
+    );
+
+    expect(result).toMatchObject({ status: "saved" });
+    expect(memory.rows[0]).toMatchObject({ title: "Typed", lookupSource: "manual", lookupKey: null });
   });
 
   test("drops a foreign cover and still saves the book", async () => {
@@ -352,6 +393,8 @@ describe("this story does not call a catalog", () => {
       "lib/pick-records.ts",
       "app/edit/pick-actions.ts",
       "app/edit/pick-form.tsx",
+      "app/edit/book-search.tsx",
+      "app/edit/lookup-action.ts",
       "app/edit/edit-screen.tsx",
       "app/edit/page.tsx",
       "app/edit/editor-query.ts",
