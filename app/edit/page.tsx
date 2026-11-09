@@ -34,7 +34,6 @@ type EditSearch = {
   meeting?: string | string[];
   venue?: string | string[];
   place?: string | string[];
-  tab?: string | string[];
 };
 
 export default async function EditPage({ searchParams }: { searchParams: Promise<EditSearch> }) {
@@ -44,7 +43,7 @@ export default async function EditPage({ searchParams }: { searchParams: Promise
     return <EditScreen access={access} />;
   }
 
-  const { selectedMonth, notice, tab } = readEditorQuery(query);
+  const { selectedMonth, notice } = readEditorQuery(query);
   const now = new Date();
   const timeZone = clubTimeZone();
   const currentMonth = clubMonthStart(now, timeZone);
@@ -65,7 +64,6 @@ export default async function EditPage({ searchParams }: { searchParams: Promise
       currentMonth={currentMonth}
       meeting={meeting}
       venue={venue}
-      tab={tab}
     />
   );
 }
