@@ -106,6 +106,7 @@ describe("production import", () => {
       assertProductionImport({
         DATABASE_URL: secretUrl,
         PRODUCTION_DATABASE_HOST: "ep-live-pooler.example.neon.tech",
+        CATALOG_RESTORE_HOST: "ep-restore.example.neon.tech",
       }),
     ).not.toThrow();
   });

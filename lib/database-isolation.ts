@@ -36,7 +36,8 @@ export function assertRuntimeDatabase(env: ProcessEnv): string {
 
 /**
  * The history and venue imports run on a trusted machine, against production
- * only. A preview, a Vercel build, and a local database all refuse.
+ * only, after a restore of that catalog has been named. A preview, a Vercel
+ * build, and a local database all refuse.
  */
 export function assertProductionImport(env: ProcessEnv): void {
   if (env.VERCEL === "1" || env.VERCEL_ENV?.trim()) {
@@ -46,6 +47,25 @@ export function assertProductionImport(env: ProcessEnv): void {
   if (databaseEndpoint(url) !== productionEndpoint(env)) {
     throw new Error("The import runs only against the production database");
   }
+  assertCatalogRestore(env);
+}
+
+/**
+ * The backup this import waits on is the production catalog. Preview and local
+ * databases are never that copy. The restore host is a different database, and
+ * it carries no user or password.
+ */
+export function assertCatalogRestore(env: ProcessEnv): void {
+  const restore = catalogRestoreEndpoint(env);
+  if (restore === productionEndpoint(env)) {
+    throw new Error("A restore must use a non-production database");
+  }
+}
+
+function catalogRestoreEndpoint(env: ProcessEnv): string {
+  const raw = env.CATALOG_RESTORE_HOST?.trim();
+  if (!raw) throw new Error("The production catalog has no confirmed restore");
+  return endpointFromHost(readHost(raw, "CATALOG_RESTORE_HOST is not a database host"));
 }
 
 function requireDatabaseUrl(env: ProcessEnv): string {
@@ -79,21 +99,25 @@ function readDatabaseHost(url: string): string {
 }
 
 function readProductionHost(value: string): string {
+  return readHost(value, PRODUCTION_HOST_MESSAGE);
+}
+
+function readHost(value: string, message: string): string {
   if (value.includes("://")) {
     let parsed: URL;
     try {
       parsed = new URL(value);
     } catch {
-      throw new Error(PRODUCTION_HOST_MESSAGE);
+      throw new Error(message);
     }
     if ((parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") || !parsed.hostname) {
-      throw new Error(PRODUCTION_HOST_MESSAGE);
+      throw new Error(message);
     }
     return parsed.hostname;
   }
 
   const host = value.replace(/:\d+$/, "").replace(/\.$/, "");
-  if (!host || /[\s/@?#]/.test(host)) throw new Error(PRODUCTION_HOST_MESSAGE);
+  if (!host || /[\s/@?#]/.test(host)) throw new Error(message);
   return host;
 }
 

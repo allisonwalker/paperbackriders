@@ -5,3 +5,10 @@ node_modules/
 .env.local
 .env*.local
 *.tsbuildinfo
+
+# The club spreadsheet and the venue list stay in Allison's own files.
+*.xlsx
+*.xls
+*.csv
+*.numbers
+*.ods
