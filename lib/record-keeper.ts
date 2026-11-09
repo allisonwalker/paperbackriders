@@ -1,7 +1,7 @@
 import { isRecordKeeperEmail, normalizeEmail } from "./auth-policy";
 
 /**
- * Authorization for inserting, updating, or deleting a pick or the meeting.
+ * Authorization for inserting, updating, or deleting a pick, the meeting, or a visit.
  * Call this inside the write. The edit screen's cookie check only chooses
  * what to render, and a write that skips this function is not authorized.
  */

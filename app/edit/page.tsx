@@ -4,6 +4,7 @@ import { clubCalendarDate, clubMonthStart, clubTimeZone } from "@/lib/club-date"
 import { readEditAccess } from "@/lib/edit-access";
 import { loadEditorMeeting } from "@/lib/meeting";
 import { loadEditorPicks } from "@/lib/picks";
+import { loadVenueName } from "@/lib/visit-records";
 import { monthInputValue } from "@/lib/validation";
 import { EditScreen } from "./edit-screen";
 import { readEditorQuery } from "./editor-query";
@@ -31,6 +32,7 @@ type EditSearch = {
   saved?: string | string[];
   deleted?: string | string[];
   meeting?: string | string[];
+  venue?: string | string[];
 };
 
 export default async function EditPage({ searchParams }: { searchParams: Promise<EditSearch> }) {
@@ -44,7 +46,11 @@ export default async function EditPage({ searchParams }: { searchParams: Promise
   const now = new Date();
   const timeZone = clubTimeZone();
   const currentMonth = clubMonthStart(now, timeZone);
-  const [records, meeting] = await Promise.all([loadEditorPicks(), loadEditorMeeting({ timeZone })]);
+  const [records, meeting, venue] = await Promise.all([
+    loadEditorPicks(),
+    loadEditorMeeting({ timeZone }),
+    selectedMonth ? loadVenueName(selectedMonth) : Promise.resolve(null),
+  ]);
 
   return (
     <EditScreen
@@ -56,6 +62,7 @@ export default async function EditPage({ searchParams }: { searchParams: Promise
       today={clubCalendarDate(now, timeZone)}
       currentMonth={currentMonth}
       meeting={meeting}
+      venue={venue}
     />
   );
 }

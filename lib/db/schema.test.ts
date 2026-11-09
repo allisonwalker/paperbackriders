@@ -132,8 +132,8 @@ describe("place and visit tables", () => {
     const placeColumn = config.columns.find((column) => column.name === "place_id");
     const pickColumn = config.columns.find((column) => column.name === "pick_id");
 
-    expect(pickKey).toBeDefined();
-    expect(placeKey).toBeDefined();
+    expect(pickKey?.onDelete).toBe("cascade");
+    expect(placeKey?.onDelete).toBe("restrict");
     expect(placeColumn?.notNull).toBe(false);
     expect(pickColumn?.isUnique).toBe(true);
   });

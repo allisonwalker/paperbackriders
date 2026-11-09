@@ -5,11 +5,13 @@ import type { EditorMeetingState } from "@/lib/meeting";
 import { meetingFormValues } from "@/lib/meeting-input";
 import type { EditorPicksState, PickRecord } from "@/lib/picks";
 import { monthInputValue, storedBookLookup } from "@/lib/validation";
+import type { VenueNameState } from "@/lib/visit-records";
 import type { EditorNotice } from "./editor-query";
 import { signOutRecordKeeper } from "./actions";
 import { MeetingForm, type MeetingChoice } from "./meeting-form";
 import { DeletePickForm, PickForm, type PickFormValues } from "./pick-form";
 import { SignInForm } from "./sign-in-form";
+import { VenueForm, type VenueFormValues } from "./venue-form";
 
 const MARK_SRC = "/paperback-riders-mark.jpg";
 
@@ -26,6 +28,7 @@ type EditScreenProps =
       today: string;
       currentMonth: string;
       meeting: EditorMeetingState;
+      venue: VenueNameState | null;
     };
 
 export function EditScreen(props: EditScreenProps) {
@@ -71,6 +74,7 @@ function EditorBody(props: EditScreenProps) {
       today={props.today}
       currentMonth={props.currentMonth}
       meeting={props.meeting}
+      venue={props.venue}
     />
   );
 }
@@ -94,6 +98,7 @@ function SignedIn({
   today,
   currentMonth,
   meeting,
+  venue,
 }: {
   email: string;
   records: EditorPicksState;
@@ -103,6 +108,7 @@ function SignedIn({
   today: string;
   currentMonth: string;
   meeting: EditorMeetingState;
+  venue: VenueNameState | null;
 }) {
   const selected =
     records.status === "ready" && selectedMonth
@@ -135,6 +141,9 @@ function SignedIn({
           <MonthList picks={records.picks} selectedMonth={selected?.month ?? null} adding={selectedMonth === null} />
         )}
         <PickForm key={`edit-${selected?.id ?? selectedMonth ?? "new"}`} values={formValues(selected, monthForInput)} />
+        {selected ? (
+          <VenueSection key={`venue-${selected.id}`} month={selected.month} venue={venue} meeting={meeting} />
+        ) : null}
         {selected ? <DeletePickForm key={`delete-${selected.id}`} month={selected.month} /> : null}
       </div>
       <MeetingSection
@@ -147,6 +156,29 @@ function SignedIn({
       />
     </>
   );
+}
+
+function VenueSection({
+  month,
+  venue,
+  meeting,
+}: {
+  month: string;
+  venue: VenueNameState | null;
+  meeting: EditorMeetingState;
+}) {
+  if (!venue || venue.status === "error") {
+    return <p role="alert">The venue name could not be loaded.</p>;
+  }
+
+  const values = venueFormValues(month, venue.enteredName, meeting);
+  return <VenueForm key={`${month}-${values.enteredName}`} values={values} />;
+}
+
+function venueFormValues(month: string, enteredName: string | null, meeting: EditorMeetingState): VenueFormValues {
+  if (enteredName) return { month, enteredName, fromMeeting: false };
+  if (meeting.status === "set") return { month, enteredName: meeting.place, fromMeeting: true };
+  return { month, enteredName: "", fromMeeting: false };
 }
 
 function MeetingSection({
@@ -331,6 +363,7 @@ function noticeText(notice: EditorNotice): string {
   if (notice === "saved-without-cover") {
     return "Saved. The cover link was left off because it is not an Open Library cover.";
   }
+  if (notice === "venue") return "Venue name saved.";
   return "Deleted.";
 }
 

@@ -13,6 +13,10 @@ describe("editor query", () => {
       selectedMonth: "2026-11-01",
       notice: "meeting",
     });
+    expect(readEditorQuery({ month: "2026-03-01", venue: "1" })).toEqual({
+      selectedMonth: "2026-03-01",
+      notice: "venue",
+    });
   });
 
   test("ignores a UTC instant and any notice that is not one of ours", () => {
@@ -23,5 +27,6 @@ describe("editor query", () => {
     expect(readEditorQuery({ saved: "1", deleted: "1" }).notice).toBe("saved");
     expect(readEditorQuery({ saved: ["nope"], deleted: ["1"] }).notice).toBe("deleted");
     expect(readEditorQuery({ meeting: "<script>" }).notice).toBeNull();
+    expect(readEditorQuery({ venue: "<script>" }).notice).toBeNull();
   });
 });

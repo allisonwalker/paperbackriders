@@ -332,8 +332,17 @@ main a:focus-visible {
   line-height: 1.05;
 }
 
-.pick-form {
+.pick-form,
+.venue-form {
   max-width: 36rem;
+}
+
+.venue-heading {
+  margin: 0;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 680;
+  letter-spacing: -0.03em;
 }
 
 .kind-choice {
