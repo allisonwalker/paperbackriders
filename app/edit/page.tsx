@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { clubMonthStart, clubTimeZone } from "@/lib/club-date";
+import { clubCalendarDate, clubMonthStart, clubTimeZone } from "@/lib/club-date";
 import { readEditAccess } from "@/lib/edit-access";
+import { loadEditorMeeting } from "@/lib/meeting";
 import { loadEditorPicks } from "@/lib/picks";
 import { monthInputValue } from "@/lib/validation";
 import { EditScreen } from "./edit-screen";
@@ -29,6 +30,7 @@ type EditSearch = {
   month?: string | string[];
   saved?: string | string[];
   deleted?: string | string[];
+  meeting?: string | string[];
 };
 
 export default async function EditPage({ searchParams }: { searchParams: Promise<EditSearch> }) {
@@ -39,8 +41,10 @@ export default async function EditPage({ searchParams }: { searchParams: Promise
   }
 
   const { selectedMonth, notice } = readEditorQuery(query);
-  const defaultMonth = monthInputValue(clubMonthStart(new Date(), clubTimeZone()));
-  const records = await loadEditorPicks();
+  const now = new Date();
+  const timeZone = clubTimeZone();
+  const currentMonth = clubMonthStart(now, timeZone);
+  const [records, meeting] = await Promise.all([loadEditorPicks(), loadEditorMeeting({ timeZone })]);
 
   return (
     <EditScreen
@@ -48,7 +52,10 @@ export default async function EditPage({ searchParams }: { searchParams: Promise
       records={records}
       selectedMonth={selectedMonth}
       notice={notice}
-      defaultMonth={defaultMonth}
+      defaultMonth={monthInputValue(currentMonth)}
+      today={clubCalendarDate(now, timeZone)}
+      currentMonth={currentMonth}
+      meeting={meeting}
     />
   );
 }

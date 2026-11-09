@@ -162,6 +162,9 @@ describe("public page", () => {
     expect(html).not.toContain("<iframe");
     expect(html).not.toContain("mailto:");
     expect(html).not.toContain("maps.");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("Save meeting");
+    expect(html).not.toContain('name="place"');
   });
 
   test("names the meeting's own pick when it is not the featured book", () => {

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { formatClubMonth } from "@/lib/club-date";
 import type { EditAccess } from "@/lib/edit-access";
+import type { EditorMeetingState } from "@/lib/meeting";
+import { meetingFormValues } from "@/lib/meeting-input";
 import type { EditorPicksState, PickRecord } from "@/lib/picks";
 import { monthInputValue, storedBookLookup } from "@/lib/validation";
 import type { EditorNotice } from "./editor-query";
 import { signOutRecordKeeper } from "./actions";
+import { MeetingForm, type MeetingChoice } from "./meeting-form";
 import { DeletePickForm, PickForm, type PickFormValues } from "./pick-form";
 import { SignInForm } from "./sign-in-form";
 
@@ -20,6 +23,9 @@ type EditScreenProps =
       selectedMonth: string | null;
       notice: EditorNotice | null;
       defaultMonth: string;
+      today: string;
+      currentMonth: string;
+      meeting: EditorMeetingState;
     };
 
 export function EditScreen(props: EditScreenProps) {
@@ -62,6 +68,9 @@ function EditorBody(props: EditScreenProps) {
       selectedMonth={props.selectedMonth}
       notice={props.notice}
       defaultMonth={props.defaultMonth}
+      today={props.today}
+      currentMonth={props.currentMonth}
+      meeting={props.meeting}
     />
   );
 }
@@ -82,12 +91,18 @@ function SignedIn({
   selectedMonth,
   notice,
   defaultMonth,
+  today,
+  currentMonth,
+  meeting,
 }: {
   email: string;
   records: EditorPicksState;
   selectedMonth: string | null;
   notice: EditorNotice | null;
   defaultMonth: string;
+  today: string;
+  currentMonth: string;
+  meeting: EditorMeetingState;
 }) {
   const selected =
     records.status === "ready" && selectedMonth
@@ -109,12 +124,11 @@ function SignedIn({
       <form className="edit-form" action={signOutRecordKeeper}>
         <button type="submit">Sign out</button>
       </form>
-      {/* The meeting form is a later sibling of this block. */}
       <div className="editor-pick">
         <h3 id="month-pick-heading" className="edit-heading">
           {"Month\u2019s pick"}
         </h3>
-        {notice ? <p role="status">{noticeText(notice)}</p> : null}
+        {notice && notice !== "meeting" ? <p role="status">{noticeText(notice)}</p> : null}
         {records.status === "error" ? (
           <p role="alert">The saved months could not be loaded.</p>
         ) : (
@@ -123,8 +137,102 @@ function SignedIn({
         <PickForm key={`edit-${selected?.id ?? selectedMonth ?? "new"}`} values={formValues(selected, monthForInput)} />
         {selected ? <DeletePickForm key={`delete-${selected.id}`} month={selected.month} /> : null}
       </div>
+      <MeetingSection
+        records={records}
+        meeting={meeting}
+        today={today}
+        currentMonth={currentMonth}
+        returnMonth={selected?.month ?? null}
+        saved={notice === "meeting"}
+      />
     </>
   );
+}
+
+function MeetingSection({
+  records,
+  meeting,
+  today,
+  currentMonth,
+  returnMonth,
+  saved,
+}: {
+  records: EditorPicksState;
+  meeting: EditorMeetingState;
+  today: string;
+  currentMonth: string;
+  returnMonth: string | null;
+  saved: boolean;
+}) {
+  return (
+    <div className="editor-pick">
+      <h3 className="edit-heading">Next meeting</h3>
+      {saved ? <p role="status">The next meeting is saved.</p> : null}
+      <MeetingBody
+        records={records}
+        meeting={meeting}
+        today={today}
+        currentMonth={currentMonth}
+        returnMonth={returnMonth}
+      />
+    </div>
+  );
+}
+
+function MeetingBody({
+  records,
+  meeting,
+  today,
+  currentMonth,
+  returnMonth,
+}: {
+  records: EditorPicksState;
+  meeting: EditorMeetingState;
+  today: string;
+  currentMonth: string;
+  returnMonth: string | null;
+}) {
+  if (meeting.status === "error") {
+    return <p role="alert">The meeting could not be loaded.</p>;
+  }
+  if (records.status === "error") {
+    return <p role="alert">The meeting cannot be saved until the months load.</p>;
+  }
+  if (records.picks.length === 0) {
+    return <p>Save a month&apos;s pick before setting the meeting.</p>;
+  }
+
+  const values = meetingFormValues({
+    picks: records.picks,
+    stored: meeting.status === "set" ? meeting : null,
+    today,
+    currentMonth,
+  });
+
+  return (
+    <MeetingForm
+      values={{
+        date: values.date,
+        time: values.time,
+        place: values.place,
+        pickId: values.pickId,
+        returnMonth,
+        choices: meetingChoices(records.picks),
+      }}
+    />
+  );
+}
+
+function meetingChoices(picks: PickRecord[]): MeetingChoice[] {
+  return [...picks]
+    .sort((left, right) => (left.month < right.month ? 1 : left.month > right.month ? -1 : 0))
+    .map((pick) => ({ id: pick.id, label: choiceLabel(pick) }));
+}
+
+function choiceLabel(pick: PickRecord): string {
+  const month = formatClubMonth(pick.month);
+  const detail = pickLabel(pick);
+  return detail ? `${month} — ${detail}` : month;
 }
 
 function MonthList({

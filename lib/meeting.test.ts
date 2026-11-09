@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { CLUB_TIMEZONE } from "./club-date";
-import { loadNextMeeting, presentMeeting, type MeetingSource } from "./meeting";
+import { loadEditorMeeting, loadNextMeeting, presentMeeting, type MeetingSource } from "./meeting";
 import type { PickRecord } from "./picks";
 
 const noonPacific = new Date("2026-11-18T20:00:00.000Z");
@@ -121,6 +121,38 @@ describe("next meeting", () => {
     expect(result).toEqual({ status: "error" });
   });
 
+  test("the editor shows a stored meeting in Pacific time, including one whose date has passed", async () => {
+    const upcoming = await loadEditorMeeting({
+      timeZone: CLUB_TIMEZONE,
+      loadRow: async () => meeting("2026-11-19T03:00:00.000Z"),
+    });
+    expect(upcoming).toEqual({
+      status: "set",
+      date: "2026-11-18",
+      time: "19:00",
+      place: "Priya's house",
+      pickId: "pick-book",
+    });
+
+    const past = await loadEditorMeeting({
+      timeZone: CLUB_TIMEZONE,
+      loadRow: async () => meeting("2026-11-18T03:00:00.000Z"),
+    });
+    expect(past).toMatchObject({ status: "set", date: "2026-11-17", time: "19:00" });
+
+    await expect(loadEditorMeeting({ timeZone: CLUB_TIMEZONE, loadRow: async () => null })).resolves.toEqual({
+      status: "empty",
+    });
+    await expect(
+      loadEditorMeeting({
+        timeZone: CLUB_TIMEZONE,
+        loadRow: async () => {
+          throw new Error("connection refused");
+        },
+      }),
+    ).resolves.toEqual({ status: "error" });
+  });
+
   test("does not call Open Library or delete a meeting on a schedule", () => {
     const meetingSource = readFileSync(new URL("./meeting.ts", import.meta.url), "utf8");
     const pageSource = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
@@ -132,6 +164,6 @@ describe("next meeting", () => {
       expect(source).not.toMatch(/\.delete\(|setInterval|cron/);
     }
     expect(vercel).not.toMatch(/crons/);
-    expect(publicPage).not.toMatch(/maps\.|geocode|mailto:/);
+    expect(publicPage).not.toMatch(/maps\.|geocode|mailto:|<form|Save meeting|name="place"/);
   });
 });

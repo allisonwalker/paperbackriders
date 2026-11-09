@@ -261,12 +261,14 @@ h2 + .dateline {
 
 .edit-form input,
 .edit-form textarea,
+.edit-form select,
 .edit-form button {
   font: inherit;
 }
 
 .edit-form input:not([type="radio"]):not([type="hidden"]),
-.edit-form textarea {
+.edit-form textarea,
+.edit-form select {
   width: 100%;
   color: var(--ink);
   background: transparent;
@@ -306,6 +308,7 @@ h2 + .dateline {
 
 .edit-form input:focus-visible,
 .edit-form textarea:focus-visible,
+.edit-form select:focus-visible,
 .edit-form button:focus-visible,
 .month-list a:focus-visible,
 .logo h1 a:focus-visible,

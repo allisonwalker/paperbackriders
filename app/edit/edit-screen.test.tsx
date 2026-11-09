@@ -42,6 +42,9 @@ const editor = {
   records: { status: "ready" as const, picks: [book(), prompt()] },
   defaultMonth: "2026-11",
   notice: null,
+  today: "2026-11-18",
+  currentMonth: "2026-11-01",
+  meeting: { status: "empty" as const },
 };
 
 describe("edit screen", () => {
@@ -54,6 +57,9 @@ describe("edit screen", () => {
     expect(html).not.toContain('type="password"');
     expect(html).not.toContain("Sign out");
     expect(html).not.toContain("Save month");
+    expect(html).not.toContain("Save meeting");
+    expect(html).not.toContain("Next meeting");
+    expect(html).not.toContain("Anyone with the link");
     expect(html).not.toContain('name="title"');
     expect(html).not.toContain("Find a book");
     expect(html).not.toContain("prompt");
@@ -65,10 +71,12 @@ describe("edit screen", () => {
     expect(html).toContain("Sign-in could not be checked");
     expect(html).not.toContain("Signed in");
     expect(html).not.toContain("Save month");
+    expect(html).not.toContain("Save meeting");
+    expect(html).not.toContain("Next meeting");
     expect(html).not.toContain('type="password"');
   });
 
-  test("the signed-in editor can type a book or a prompt and does not include the meeting form", () => {
+  test("the signed-in editor can type a book or a prompt", () => {
     const errors: unknown[][] = [];
     const original = console.error;
     console.error = (...args: unknown[]) => {
@@ -105,8 +113,6 @@ describe("edit screen", () => {
     expect(html).toContain('value="2026-11-01"');
     expect(html).not.toContain('type="month"');
     expect(html).not.toContain('type="password"');
-    expect(html).not.toContain('name="place"');
-    expect(html).not.toContain("Next meeting");
     expect(html).not.toContain(MEETING_BLOCKS_DELETE);
     expect(html).toContain("Find a book");
     expect(html).toContain(">Search<");
@@ -114,7 +120,7 @@ describe("edit screen", () => {
     expect(html).toContain('name="lookupSource"');
     expect(html).toContain('value="open_library"');
     expect(html).toContain('value="OL45883W"');
-    expect(html.match(/<form/g)).toHaveLength(3);
+    expect(html.match(/<form/g)).toHaveLength(4);
   });
 
   test("a saved prompt shows the prompt and none of the book values", () => {
@@ -141,9 +147,14 @@ describe("edit screen", () => {
         selectedMonth={null}
         notice={null}
         defaultMonth="2026-11"
+        today="2026-11-18"
+        currentMonth="2026-11-01"
+        meeting={{ status: "empty" }}
       />,
     );
     expect(empty).toContain("No months are saved yet.");
+    expect(empty).toContain("Save a month&#x27;s pick before setting the meeting.");
+    expect(empty).not.toContain('name="place"');
     expect(empty).toContain('type="month"');
     expect(empty).toContain('value="2026-11"');
     expect(empty).toContain("Save month");
@@ -159,9 +170,14 @@ describe("edit screen", () => {
         selectedMonth={null}
         notice="deleted"
         defaultMonth="2026-11"
+        today="2026-11-18"
+        currentMonth="2026-11-01"
+        meeting={{ status: "empty" }}
       />,
     );
     expect(failed).toContain("The saved months could not be loaded.");
+    expect(failed).toContain("The meeting cannot be saved until the months load.");
+    expect(failed).not.toContain('name="place"');
     expect(failed).toContain("Deleted.");
     expect(failed).not.toContain("No months are saved yet.");
   });
@@ -174,8 +190,95 @@ describe("edit screen", () => {
         selectedMonth={null}
         notice="saved-without-cover"
         defaultMonth="2026-11"
+        today="2026-11-18"
+        currentMonth="2026-11-01"
+        meeting={{ status: "empty" }}
       />,
     );
     expect(html).toContain("Saved. The cover link was left off because it is not an Open Library cover.");
+  });
+
+  test("starts on the pick for the meeting's month, and a prompt is a choice", () => {
+    const html = renderToStaticMarkup(
+      <EditScreen access={{ status: "signed-in", email: "keeper@example.com" }} {...editor} selectedMonth={null} />,
+    );
+    const meeting = html.slice(html.indexOf("Next meeting"));
+
+    expect(meeting).toContain("Anyone with the link can read this.");
+    expect(meeting).toContain("at a member&#x27;s home.");
+    expect(meeting).toContain('type="date"');
+    expect(meeting).toContain('value="2026-11-18"');
+    expect(meeting).toContain('type="time"');
+    expect(meeting).toContain('value="18:30"');
+    expect(meeting).toContain('name="place"');
+    expect(meeting).toContain('type="text"');
+    expect(meeting).toContain("<select");
+    expect(meeting).toContain("November 2026 — The Left Hand of Darkness by Ursula K. Le Guin");
+    expect(meeting).toContain("March 2026 — Read a book from the year you were born.");
+    expect(meeting).toMatch(/<option[^>]*value="november"[^>]*selected/);
+    expect(meeting).not.toMatch(/<option[^>]*value="march"[^>]*selected/);
+    expect(meeting).toContain("Save meeting");
+    expect(meeting).not.toMatch(/geocode|maps\.|openstreetmap|leaflet|<iframe|type="tel"|type="email"|name="phone"|name="email"/i);
+  });
+
+  test("starts on the featured pick when the meeting's month has none", () => {
+    const html = renderToStaticMarkup(
+      <EditScreen
+        access={{ status: "signed-in", email: "keeper@example.com" }}
+        records={{ status: "ready", picks: [book(), prompt()] }}
+        selectedMonth={null}
+        notice={null}
+        defaultMonth="2027-01"
+        today="2027-01-15"
+        currentMonth="2027-01-01"
+        meeting={{ status: "empty" }}
+      />,
+    );
+    const meeting = html.slice(html.indexOf("Next meeting"));
+
+    expect(meeting).toContain('value="2027-01-15"');
+    expect(meeting).toMatch(/<option[^>]*value="november"[^>]*selected/);
+    expect(meeting).not.toMatch(/<option[^>]*value="march"[^>]*selected/);
+  });
+
+  test("reopens on the saved pick, including one she switched to", () => {
+    const html = renderToStaticMarkup(
+      <EditScreen
+        access={{ status: "signed-in", email: "keeper@example.com" }}
+        {...editor}
+        selectedMonth="2026-11-01"
+        notice="meeting"
+        meeting={{
+          status: "set",
+          date: "2026-11-18",
+          time: "19:00",
+          place: "at a member's home",
+          pickId: "march",
+        }}
+      />,
+    );
+    const meeting = html.slice(html.indexOf("Next meeting"));
+
+    expect(meeting).toContain("The next meeting is saved.");
+    expect(meeting).toContain('value="19:00"');
+    expect(meeting).toContain('value="at a member&#x27;s home"');
+    expect(meeting).toMatch(/<option[^>]*value="march"[^>]*selected/);
+    expect(meeting).toContain('name="returnMonth"');
+    expect(meeting).toContain('value="2026-11-01"');
+  });
+
+  test("a failed meeting load is not an empty form", () => {
+    const html = renderToStaticMarkup(
+      <EditScreen
+        access={{ status: "signed-in", email: "keeper@example.com" }}
+        {...editor}
+        selectedMonth={null}
+        meeting={{ status: "error" }}
+      />,
+    );
+
+    expect(html).toContain("The meeting could not be loaded.");
+    expect(html).not.toContain('name="place"');
+    expect(html).not.toContain("Save meeting");
   });
 });

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { calendarDaysUntil, clubCalendarDate, clubTimeZone } from "./club-date";
 import { getDb } from "./db/client";
 import { meetings, picks } from "./db/schema";
+import { clubDateAndTime } from "./meeting-input";
 import { mapPickRow, type PickRecord } from "./picks";
 
 export const NO_UPCOMING_MEETING = "No upcoming meeting is set.";
@@ -26,6 +27,11 @@ export type MeetingView =
     };
 
 export type MeetingResult = MeetingView | { status: "error" };
+
+export type EditorMeetingState =
+  | { status: "empty" }
+  | { status: "error" }
+  | { status: "set"; date: string; time: string; place: string; pickId: string };
 
 export function meetingLead(daysRemaining: number): string {
   if (!Number.isInteger(daysRemaining) || daysRemaining < 0) {
@@ -103,6 +109,26 @@ export async function loadNextMeeting(options?: {
     const timeZone = options?.timeZone ?? clubTimeZone();
     const source = await (options?.loadRow ?? loadMeetingRow)();
     return presentMeeting(source, now, timeZone);
+  } catch (error) {
+    logMeetingFailure(error);
+    return { status: "error" };
+  }
+}
+
+export async function loadEditorMeeting(options?: {
+  timeZone?: string;
+  loadRow?: () => Promise<MeetingSource | null>;
+}): Promise<EditorMeetingState> {
+  try {
+    const timeZone = options?.timeZone ?? clubTimeZone();
+    const source = await (options?.loadRow ?? loadMeetingRow)();
+    if (!source) return { status: "empty" };
+
+    const when = clubDateAndTime(source.startsAt, timeZone);
+    const place = source.place.trim();
+    if (!place) throw new Error(`Meeting ${source.id} is missing its place`);
+
+    return { status: "set", date: when.date, time: when.time, place, pickId: source.pick.id };
   } catch (error) {
     logMeetingFailure(error);
     return { status: "error" };

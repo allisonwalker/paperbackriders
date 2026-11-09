@@ -1,11 +1,12 @@
 import { normalizeMonth } from "@/lib/validation";
 
-export type EditorNotice = "saved" | "saved-without-cover" | "deleted";
+export type EditorNotice = "saved" | "saved-without-cover" | "deleted" | "meeting";
 
 export type EditorQuery = {
   month?: string | string[];
   saved?: string | string[];
   deleted?: string | string[];
+  meeting?: string | string[];
 };
 
 export function readEditorQuery(query: EditorQuery): {
@@ -14,8 +15,17 @@ export function readEditorQuery(query: EditorQuery): {
 } {
   const saved = firstQuery(query.saved);
   const deleted = firstQuery(query.deleted);
+  const meeting = firstQuery(query.meeting);
   const notice: EditorNotice | null =
-    saved === "cover" ? "saved-without-cover" : saved === "1" ? "saved" : deleted === "1" ? "deleted" : null;
+    saved === "cover"
+      ? "saved-without-cover"
+      : saved === "1"
+        ? "saved"
+        : deleted === "1"
+          ? "deleted"
+          : meeting === "1"
+            ? "meeting"
+            : null;
 
   return {
     selectedMonth: normalizeMonth(firstQuery(query.month)),
