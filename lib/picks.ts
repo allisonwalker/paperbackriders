@@ -190,6 +190,20 @@ export async function loadAllPicks(): Promise<PickRecord[]> {
   return rows.map(mapPickRow);
 }
 
+export type EditorPicksState = { status: "ready"; picks: PickRecord[] } | { status: "error" };
+
+export async function loadEditorPicks(options?: {
+  loadRows?: () => Promise<PickRecord[]>;
+}): Promise<EditorPicksState> {
+  try {
+    const rows = await (options?.loadRows ?? loadAllPicks)();
+    return { status: "ready", picks: rows };
+  } catch (error) {
+    logPickFailure("editor picks query failed", error);
+    return { status: "error" };
+  }
+}
+
 export async function loadHistory(options?: {
   markedMonth?: string | null;
   loadRows?: () => Promise<PickRecord[]>;

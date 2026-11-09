@@ -260,15 +260,23 @@ h2 + .dateline {
 }
 
 .edit-form input,
+.edit-form textarea,
 .edit-form button {
   font: inherit;
 }
 
-.edit-form input {
+.edit-form input:not([type="radio"]):not([type="hidden"]),
+.edit-form textarea {
+  width: 100%;
   color: var(--ink);
   background: transparent;
   border: 1px solid var(--ink);
   padding: 0.6rem 0.7rem;
+}
+
+.edit-form textarea {
+  min-height: 8rem;
+  resize: vertical;
 }
 
 .edit-form button {
@@ -278,6 +286,12 @@ h2 + .dateline {
   border: 0;
   padding: 0.6rem 0.9rem;
   cursor: pointer;
+}
+
+.edit-form button.danger {
+  background: transparent;
+  color: #9c2b1b;
+  border: 1px solid #9c2b1b;
 }
 
 .edit-form button:disabled {
@@ -291,9 +305,107 @@ h2 + .dateline {
 }
 
 .edit-form input:focus-visible,
+.edit-form textarea:focus-visible,
 .edit-form button:focus-visible,
+.month-list a:focus-visible,
 .logo h1 a:focus-visible,
 main a:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
+}
+
+.editor-pick {
+  margin-top: 2rem;
+  padding-top: 1.4rem;
+  border-top: 3px solid var(--ink);
+}
+
+.edit-heading {
+  margin: 0 0 0.8rem;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.pick-form {
+  max-width: 36rem;
+}
+
+.kind-choice {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.kind-choice label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.for-book,
+.for-prompt {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pick-form:has(input[name="kind"][value="book"]:checked) .for-prompt {
+  display: none;
+}
+
+.pick-form:has(input[name="kind"][value="prompt"]:checked) .for-book {
+  display: none;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.locked-month {
+  margin: 0;
+}
+
+.hint,
+.field-error {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.hint {
+  color: var(--meta);
+}
+
+.field-error {
+  color: #9c2b1b;
+}
+
+.month-list {
+  list-style: none;
+  margin: 0 0 1.2rem;
+  padding: 0;
+  max-width: 40rem;
+}
+
+.month-list li {
+  margin: 0.45rem 0;
+}
+
+.month-list a {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.month-list a[aria-current="page"] {
+  font-weight: 500;
+  box-shadow: inset 0 -0.35em 0 #ead7b6;
+}
+
+.month-list em {
+  font-family: var(--font-fraunces), Georgia, serif;
 }

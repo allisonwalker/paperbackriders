@@ -1,6 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { CLUB_TIMEZONE } from "./club-date";
-import { loadFeaturedPick, loadHistory, selectFeaturedPick, toHero, toHistory, type PickRecord } from "./picks";
+import {
+  loadEditorPicks,
+  loadFeaturedPick,
+  loadHistory,
+  selectFeaturedPick,
+  toHero,
+  toHistory,
+  type PickRecord,
+} from "./picks";
 
 function pick(month: string, overrides: Partial<PickRecord> = {}): PickRecord {
   return {
@@ -151,6 +159,22 @@ describe("reading history", () => {
 
   test("is an empty list when the club has no picks", () => {
     expect(toHistory([], null)).toEqual([]);
+  });
+
+  test("returns every pick for the editor and does not call a failed load empty", async () => {
+    const rows = [pick("2026-11-01"), pick("2026-10-01")];
+    await expect(loadEditorPicks({ loadRows: async () => rows })).resolves.toEqual({
+      status: "ready",
+      picks: rows,
+    });
+
+    await expect(
+      loadEditorPicks({
+        loadRows: async () => {
+          throw new Error("connection refused");
+        },
+      }),
+    ).resolves.toEqual({ status: "error" });
   });
 
   test("says the history could not load when the query fails", async () => {

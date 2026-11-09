@@ -50,6 +50,12 @@ describe("pick table", () => {
     expect(shape?.sql).toContain("cover_url");
     expect(shape?.sql).toContain("page_count");
     expect(shape?.sql).toContain("genre");
+    expect(shape?.sql).toContain("lookup_source");
+    expect(shape?.sql).toContain("lookup_key");
+    expect(shape?.sql).toContain("'manual'");
+    expect(shape?.sql).toContain("'open_library'");
+    expect(shape?.sql).toContain("prompt_text\" is null");
+    expect(shape?.sql).toContain("title\" is null");
   });
 
   test("the page stays on the Node.js runtime and does not check a session", () => {

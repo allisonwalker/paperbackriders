@@ -72,6 +72,28 @@ export function resolveAuthBaseURL(env: AuthEnv): string | undefined {
   return configured || undefined;
 }
 
+/**
+ * Hosts that may appear in a magic link when BETTER_AUTH_URL is unset.
+ * A direct server-action call has no base URL until the request host is read.
+ */
+export const REQUEST_HOSTS = ["127.0.0.1:3000", "localhost:3000", "*.vercel.app"] as const;
+
+export type AuthBaseURL =
+  | string
+  | {
+      allowedHosts: string[];
+      protocol: "auto";
+    };
+
+export function authBaseURL(env: AuthEnv): AuthBaseURL {
+  return (
+    resolveAuthBaseURL(env) ?? {
+      allowedHosts: [...REQUEST_HOSTS],
+      protocol: "auto",
+    }
+  );
+}
+
 export function assertServerOnlyAuthEnv(env: AuthEnv): void {
   for (const name of PUBLIC_AUTH_ENV) {
     if (env[name]?.trim()) {
@@ -107,7 +129,7 @@ export function sessionCookieAttributes(nodeEnv: string | undefined): {
 
 export function authSecurityOptions(env: AuthEnv) {
   return {
-    baseURL: resolveAuthBaseURL(env),
+    baseURL: authBaseURL(env),
     emailAndPassword: { enabled: false as const, disableSignUp: true as const },
     session: { cookieCache: { enabled: false as const } },
     advanced: {

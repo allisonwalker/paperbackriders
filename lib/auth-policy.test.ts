@@ -9,6 +9,8 @@ import {
   allowUserUpdate,
   allowVerificationCreate,
   assertServerOnlyAuthEnv,
+  REQUEST_HOSTS,
+  authBaseURL,
   authSecurityOptions,
   isRecordKeeperEmail,
   redactAuthText,
@@ -95,6 +97,7 @@ describe("session cookie", () => {
 describe("auth configuration", () => {
   test("turns password sign-up off and does not cache the session away from Postgres", () => {
     const security = authSecurityOptions({ NODE_ENV: "production", BETTER_AUTH_URL: "https://club.example" });
+    expect(security.baseURL).toBe("https://club.example");
     expect(security.emailAndPassword).toEqual({ enabled: false, disableSignUp: true });
     expect(security.session.cookieCache.enabled).toBe(false);
     expect(security.advanced.crossSubDomainCookies.enabled).toBe(false);
@@ -112,6 +115,18 @@ describe("auth configuration", () => {
         BASE_URL: "https://club.example",
       }),
     ).toBeUndefined();
+  });
+
+  test("reads the request host when BETTER_AUTH_URL is unset", () => {
+    expect(
+      authBaseURL({
+        VERCEL_URL: "preview.vercel.app",
+        BASE_URL: "https://club.example",
+      }),
+    ).toEqual({
+      allowedHosts: [...REQUEST_HOSTS],
+      protocol: "auto",
+    });
   });
 
   test("rejects public auth env and a BASE_URL standing in for an unset auth URL", () => {

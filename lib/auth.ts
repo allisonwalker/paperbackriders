@@ -32,7 +32,7 @@ export function createAuth(env: AuthEnv = process.env) {
 
   return betterAuth({
     secret: requireAuthSecret(env),
-    ...(security.baseURL ? { baseURL: security.baseURL } : {}),
+    baseURL: security.baseURL,
     database: drizzleAdapter(getDb(), {
       provider: "pg",
       schema: authTables,
