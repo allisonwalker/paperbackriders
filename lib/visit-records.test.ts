@@ -184,17 +184,28 @@ describe("save a venue name", () => {
 
 describe("load a venue name", () => {
   test("returns the stored name, or nothing when the month has no visit", async () => {
-    await expect(loadVenueName(march, { read: async () => "Cal Anderson Park" })).resolves.toEqual({
+    await expect(
+      loadVenueName(march, {
+        read: async () => ({ pickId, enteredName: "Cal Anderson Park", placeLabel: "Cal Anderson Park, Seattle" }),
+      }),
+    ).resolves.toEqual({
       status: "ready",
       enteredName: "Cal Anderson Park",
+      placeLabel: "Cal Anderson Park, Seattle",
     });
     await expect(loadVenueName(march, { read: async () => null })).resolves.toEqual({
       status: "ready",
       enteredName: null,
+      placeLabel: null,
     });
-    await expect(loadVenueName("2026-03-15", { read: async () => "should not be read" })).resolves.toEqual({
+    await expect(
+      loadVenueName("2026-03-15", {
+        read: async () => ({ pickId, enteredName: "should not be read", placeLabel: null }),
+      }),
+    ).resolves.toEqual({
       status: "ready",
       enteredName: null,
+      placeLabel: null,
     });
   });
 

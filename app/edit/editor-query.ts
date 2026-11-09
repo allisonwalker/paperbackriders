@@ -1,6 +1,6 @@
 import { normalizeMonth } from "@/lib/validation";
 
-export type EditorNotice = "saved" | "saved-without-cover" | "deleted" | "meeting" | "venue";
+export type EditorNotice = "saved" | "saved-without-cover" | "deleted" | "meeting" | "venue" | "place" | "place-cleared";
 
 export type EditorQuery = {
   month?: string | string[];
@@ -8,6 +8,7 @@ export type EditorQuery = {
   deleted?: string | string[];
   meeting?: string | string[];
   venue?: string | string[];
+  place?: string | string[];
 };
 
 export function readEditorQuery(query: EditorQuery): {
@@ -18,6 +19,7 @@ export function readEditorQuery(query: EditorQuery): {
   const deleted = firstQuery(query.deleted);
   const meeting = firstQuery(query.meeting);
   const venue = firstQuery(query.venue);
+  const place = firstQuery(query.place);
   const notice: EditorNotice | null =
     saved === "cover"
       ? "saved-without-cover"
@@ -29,7 +31,11 @@ export function readEditorQuery(query: EditorQuery): {
             ? "meeting"
             : venue === "1"
               ? "venue"
-              : null;
+              : place === "1"
+                ? "place"
+                : place === "cleared"
+                  ? "place-cleared"
+                  : null;
 
   return {
     selectedMonth: normalizeMonth(firstQuery(query.month)),

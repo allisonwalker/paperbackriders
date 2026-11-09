@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { isMonthStart } from "./club-date";
 import { getDb } from "./db/client";
-import { picks, visits } from "./db/schema";
+import { picks, places, visits } from "./db/schema";
 import { PLACE_LIMIT } from "./meeting-copy";
 import { requireRecordKeeper, RecordKeeperRequiredError, type SessionEmail } from "./record-keeper";
 import { normalizeMonth } from "./validation";
@@ -11,6 +11,7 @@ import { normalizeMonth } from "./validation";
  * The public pin query stays in visits.ts and never reads this name.
  * requireRecordKeeper runs inside the save, before any write.
  * A save sets entered_name only. It does not insert a place or set place_id.
+ * Loading a month can also return the confirmed place's label, never its coordinates.
  */
 
 export const VENUE_NAME_LIMIT = PLACE_LIMIT;
@@ -49,7 +50,15 @@ export type SaveVenueResult =
   | { status: "missing"; message: string }
   | { status: "error" };
 
-export type VenueNameState = { status: "ready"; enteredName: string | null } | { status: "error" };
+export type StoredVenueName = {
+  pickId: string;
+  enteredName: string;
+  placeLabel: string | null;
+};
+
+export type VenueNameState =
+  | { status: "ready"; enteredName: string | null; placeLabel: string | null }
+  | { status: "error" };
 
 const MISSING_MONTH = "That month is not saved.";
 
@@ -77,16 +86,22 @@ export async function saveVenueName(input: VenueNameInput, options?: VenueWriteO
 
 export async function loadVenueName(
   month: string,
-  options?: { read?: (month: string) => Promise<string | null> },
+  options?: { read?: (month: string) => Promise<StoredVenueName | null> },
 ): Promise<VenueNameState> {
   try {
-    if (!isMonthStart(month)) return { status: "ready", enteredName: null };
-    const enteredName = await (options?.read ?? readEnteredName)(month);
-    return { status: "ready", enteredName };
+    if (!isMonthStart(month)) return { status: "ready", enteredName: null, placeLabel: null };
+    const row = await (options?.read ?? readVenueRow)(month);
+    return { status: "ready", enteredName: row?.enteredName ?? null, placeLabel: row?.placeLabel ?? null };
   } catch (error) {
     logVisitReadFailure(error, month);
     return { status: "error" };
   }
+}
+
+export async function readStoredVenue(month: string): Promise<{ pickId: string; enteredName: string } | null> {
+  const row = await readVenueRow(month);
+  if (!row) return null;
+  return { pickId: row.pickId, enteredName: row.enteredName };
 }
 
 export function parseVenueName(
@@ -133,14 +148,22 @@ function defaultStore(): VenueStore {
   };
 }
 
-async function readEnteredName(month: string): Promise<string | null> {
+async function readVenueRow(month: string): Promise<StoredVenueName | null> {
   const rows = await getDb()
-    .select({ enteredName: visits.enteredName })
+    .select({
+      pickId: visits.pickId,
+      enteredName: visits.enteredName,
+      placeLabel: places.label,
+    })
     .from(visits)
     .innerJoin(picks, eq(visits.pickId, picks.id))
+    .leftJoin(places, eq(visits.placeId, places.id))
     .where(eq(picks.month, month))
     .limit(1);
-  return rows[0]?.enteredName ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  const placeLabel = row.placeLabel?.trim() ?? "";
+  return { pickId: row.pickId, enteredName: row.enteredName, placeLabel: placeLabel || null };
 }
 
 function postgresCode(error: unknown): string | null {

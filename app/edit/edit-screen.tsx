@@ -12,6 +12,7 @@ import { MeetingForm, type MeetingChoice } from "./meeting-form";
 import { DeletePickForm, PickForm, type PickFormValues } from "./pick-form";
 import { SignInForm } from "./sign-in-form";
 import { VenueForm, type VenueFormValues } from "./venue-form";
+import { PlaceFinder } from "./place-form";
 
 const MARK_SRC = "/paperback-riders-mark.jpg";
 
@@ -171,14 +172,26 @@ function VenueSection({
     return <p role="alert">The venue name could not be loaded.</p>;
   }
 
-  const values = venueFormValues(month, venue.enteredName, meeting);
-  return <VenueForm key={`${month}-${values.enteredName}`} values={values} />;
+  const values = venueFormValues(month, venue.enteredName, venue.placeLabel, meeting);
+  return (
+    <>
+      <VenueForm key={`${month}-${values.enteredName}`} values={values} />
+      {values.enteredName && !values.fromMeeting ? (
+        <PlaceFinder key={`${month}-${venue.placeLabel ?? ""}`} month={month} placeLabel={venue.placeLabel} />
+      ) : null}
+    </>
+  );
 }
 
-function venueFormValues(month: string, enteredName: string | null, meeting: EditorMeetingState): VenueFormValues {
-  if (enteredName) return { month, enteredName, fromMeeting: false };
-  if (meeting.status === "set") return { month, enteredName: meeting.place, fromMeeting: true };
-  return { month, enteredName: "", fromMeeting: false };
+function venueFormValues(
+  month: string,
+  enteredName: string | null,
+  placeLabel: string | null,
+  meeting: EditorMeetingState,
+): VenueFormValues {
+  if (enteredName) return { month, enteredName, fromMeeting: false, placeConfirmed: placeLabel !== null };
+  if (meeting.status === "set") return { month, enteredName: meeting.place, fromMeeting: true, placeConfirmed: false };
+  return { month, enteredName: "", fromMeeting: false, placeConfirmed: false };
 }
 
 function MeetingSection({
@@ -364,6 +377,8 @@ function noticeText(notice: EditorNotice): string {
     return "Saved. The cover link was left off because it is not an Open Library cover.";
   }
   if (notice === "venue") return "Venue name saved.";
+  if (notice === "place") return "Place confirmed. Anyone with the link can see this pin.";
+  if (notice === "place-cleared") return "Confirmed place cleared. The venue name is still saved, and there is no pin.";
   return "Deleted.";
 }
 

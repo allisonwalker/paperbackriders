@@ -8,6 +8,7 @@ export type VenueFormValues = {
   month: string;
   enteredName: string;
   fromMeeting: boolean;
+  placeConfirmed: boolean;
 };
 
 const idle: VenueFormState = { status: "idle" };
@@ -15,9 +16,11 @@ const idle: VenueFormState = { status: "idle" };
 export function VenueForm({ values }: { values: VenueFormValues }) {
   const [state, action, pending] = useActionState(saveVenueNameAction, idle);
   const errors = state.errors ?? {};
-  const hint = values.fromMeeting
-    ? "The next meeting's place is filled in. You can type a different name. Saving it does not change the meeting, and this is not a map pin."
-    : "Where this month met. Saving it does not change the next meeting, and this is not a map pin.";
+  const hint = values.placeConfirmed
+    ? "Saving a new name does not change the next meeting or move a pin you already confirmed."
+    : values.fromMeeting
+      ? "The next meeting's place is filled in. You can type a different name. Saving it does not change the meeting, and this is not a map pin."
+      : "Where this month met. Saving it does not change the next meeting, and this is not a map pin.";
 
   return (
     <form className="edit-form venue-form" action={action} autoComplete="off">
