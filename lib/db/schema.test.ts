@@ -3,11 +3,11 @@ import { getTableColumns, getTableName } from "drizzle-orm";
 import { getTableConfig, PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, test } from "vitest";
 import * as schema from "./schema";
-import { meetings, picks } from "./schema";
+import { meetings, picks, places, visits } from "./schema";
 
 describe("pick table", () => {
   test("is a pick table and has no current-pick flag", () => {
-    expect(Object.keys(schema)).toEqual(["picks", "meetings"]);
+    expect(Object.keys(schema)).toEqual(["picks", "meetings", "places", "visits"]);
     expect(getTableName(picks)).toBe("picks");
 
     const columns = Object.keys(getTableColumns(picks));
@@ -92,5 +92,49 @@ describe("meeting table", () => {
     expect(checks.join("\n")).toContain("btrim");
     expect(uniques).toContain("meetings_one_row");
     expect(Object.keys(getTableColumns(meetings)).join(" ")).not.toMatch(/phone|email|latitude|longitude/i);
+  });
+});
+
+describe("place and visit tables", () => {
+  test("stores one confirmed place per provider id, with real coordinates", () => {
+    expect(getTableName(places)).toBe("places");
+    expect(Object.keys(getTableColumns(places))).toEqual([
+      "id",
+      "label",
+      "latitude",
+      "longitude",
+      "provider",
+      "providerId",
+    ]);
+
+    const dialect = new PgDialect();
+    const config = getTableConfig(places);
+    const checks = config.checks.map((constraint) => ({
+      name: constraint.name,
+      sql: dialect.sqlToQuery(constraint.value).sql,
+    }));
+    const uniques = config.uniqueConstraints.map((constraint) => constraint.columns.map((column) => column.name).join(","));
+
+    expect(checks.find((constraint) => constraint.name === "places_latitude_range")?.sql).toContain(">=");
+    expect(checks.map((constraint) => constraint.sql).join("\n")).toContain("-90");
+    expect(checks.map((constraint) => constraint.sql).join("\n")).toContain("180");
+    expect(checks.map((constraint) => constraint.sql).join("\n")).toContain("btrim");
+    expect(uniques).toContain("provider,provider_id");
+  });
+
+  test("stores one visit per pick and leaves the place empty until it is confirmed", () => {
+    expect(getTableName(visits)).toBe("visits");
+    expect(Object.keys(getTableColumns(visits))).toEqual(["id", "pickId", "enteredName", "placeId"]);
+
+    const config = getTableConfig(visits);
+    const pickKey = config.foreignKeys.find((key) => key.onDelete === "cascade");
+    const placeKey = config.foreignKeys.find((key) => key.onDelete === "restrict");
+    const placeColumn = config.columns.find((column) => column.name === "place_id");
+    const pickColumn = config.columns.find((column) => column.name === "pick_id");
+
+    expect(pickKey).toBeDefined();
+    expect(placeKey).toBeDefined();
+    expect(placeColumn?.notNull).toBe(false);
+    expect(pickColumn?.isUnique).toBe(true);
   });
 });

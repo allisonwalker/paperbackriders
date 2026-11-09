@@ -1,5 +1,16 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, date, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  check,
+  date,
+  doublePrecision,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const picks = pgTable(
   "picks",
@@ -63,4 +74,38 @@ export const meetings = pgTable(
     check("meetings_is_singleton", sql`${table.singleton} = true`),
     check("meetings_place_present", sql`btrim(${table.place}) <> ''`),
   ],
+);
+
+export const places = pgTable(
+  "places",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    label: text("label").notNull(),
+    latitude: doublePrecision("latitude").notNull(),
+    longitude: doublePrecision("longitude").notNull(),
+    provider: text("provider").notNull(),
+    providerId: text("provider_id").notNull(),
+  },
+  (table) => [
+    unique("places_provider_identity").on(table.provider, table.providerId),
+    check("places_label_present", sql`btrim(${table.label}) <> ''`),
+    check("places_provider_present", sql`btrim(${table.provider}) <> ''`),
+    check("places_provider_id_present", sql`btrim(${table.providerId}) <> ''`),
+    check("places_latitude_range", sql`${table.latitude} >= -90 and ${table.latitude} <= 90`),
+    check("places_longitude_range", sql`${table.longitude} >= -180 and ${table.longitude} <= 180`),
+  ],
+);
+
+export const visits = pgTable(
+  "visits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pickId: uuid("pick_id")
+      .notNull()
+      .unique()
+      .references(() => picks.id, { onDelete: "cascade" }),
+    enteredName: text("entered_name").notNull(),
+    placeId: uuid("place_id").references(() => places.id, { onDelete: "restrict" }),
+  },
+  (table) => [check("visits_entered_name_present", sql`btrim(${table.enteredName}) <> ''`)],
 );

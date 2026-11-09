@@ -1,14 +1,17 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import type { ReadingState } from "@/lib/reading";
+import type { PinsState } from "@/lib/visits";
 import { AnalyticsPage } from "./analytics-page";
 
-function render(reading: ReadingState): string {
-  return renderToStaticMarkup(<AnalyticsPage reading={reading} />);
+const noPins: PinsState = { status: "ready", pins: [] };
+
+function render(reading: ReadingState, pins: PinsState = noPins): string {
+  return renderToStaticMarkup(<AnalyticsPage reading={reading} pins={pins} />);
 }
 
 describe("book analytics page", () => {
-  test("shows the three totals as text, with no map", () => {
+  test("shows the three totals as text, then the map", () => {
     const html = render({
       status: "ready",
       bookCount: 12,
@@ -27,8 +30,9 @@ describe("book analytics page", () => {
     expect(html.indexOf("Fantasy")).toBeLessThan(html.indexOf("History"));
     expect(html).toContain("4 books");
     expect(html).toContain("3 books");
+    expect(html.indexOf("Reading totals")).toBeLessThan(html.indexOf("Meeting places"));
+    expect(html).toContain("No places are confirmed yet.");
     expect(html).not.toContain("<canvas");
-    expect(html).not.toContain("maplibre");
   });
 
   test("shows zero books, zero pages, and no genres", () => {
@@ -50,5 +54,19 @@ describe("book analytics page", () => {
     expect(html).not.toContain("books");
     expect(html).not.toContain("pages");
     expect(html).not.toContain("No genres.");
+    expect(html).not.toContain("No places are confirmed yet.");
+    expect(html).not.toContain("The map could not load.");
+  });
+
+  test("keeps the totals when the pin query fails", () => {
+    const html = render(
+      { status: "ready", bookCount: 2, pageTotal: 80, genres: [] },
+      { status: "error" },
+    );
+
+    expect(html).toContain(">2<");
+    expect(html).toContain(">80<");
+    expect(html).toContain("The map could not load.");
+    expect(html).not.toContain("No places are confirmed yet.");
   });
 });
