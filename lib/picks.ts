@@ -1,6 +1,6 @@
 import { desc, lte } from "drizzle-orm";
 import { clubCalendarDate, clubMonthStart, clubTimeZone, formatClubMonth, isMonthStart } from "./club-date";
-import { displayCoverUrl } from "./cover";
+import { displayCoverUrl, historyCoverUrl } from "./cover";
 import { CURRENT_PICK_LABEL, selectCurrentPick, type CurrentMeeting, type MeetingSettlement } from "./current-pick";
 import { getDb } from "./db/client";
 import { picks } from "./db/schema";
@@ -24,7 +24,17 @@ export type PickRecord = {
   genre: string | null;
   lookupSource: string | null;
   lookupKey: string | null;
+  alsoRead: AlsoRead | null;
   meetingSettled?: MeetingSettlement | null;
+};
+
+export type AlsoRead = {
+  title: string;
+  author: string;
+  publishedYear: number | null;
+  coverUrl: string | null;
+  pageCount: number | null;
+  genre: string | null;
 };
 
 export type BookHero = {
@@ -57,7 +67,10 @@ export type BookHistoryEntry = {
   title: string;
   author: string;
   pageCount: number | null;
+  genre: string | null;
+  coverUrl: string | null;
   marked: boolean;
+  entryKey: string;
 };
 
 export type PromptHistoryEntry = {
@@ -66,6 +79,7 @@ export type PromptHistoryEntry = {
   monthLabel: string;
   promptText: string;
   marked: boolean;
+  entryKey: string;
 };
 
 export type HistoryEntry = BookHistoryEntry | PromptHistoryEntry;
@@ -139,14 +153,30 @@ export function mapPickRow(row: PickRow): PickRecord {
     genre: row.genre,
     lookupSource: row.lookupSource,
     lookupKey: row.lookupKey,
+    alsoRead: alsoReadFrom(row),
     meetingSettled: row.meetingSettled === "skipped" || row.meetingSettled === "happened" ? row.meetingSettled : null,
+  };
+}
+
+function alsoReadFrom(row: PickRow): AlsoRead | null {
+  const title = blankToNull(row.alsoTitle);
+  const author = blankToNull(row.alsoAuthor);
+  if (!title || !author) return null;
+
+  return {
+    title,
+    author,
+    publishedYear: row.alsoPublishedYear,
+    coverUrl: row.alsoCoverUrl,
+    pageCount: row.alsoPageCount,
+    genre: blankToNull(row.alsoGenre),
   };
 }
 
 export function toHistory(rows: readonly PickRecord[], featuredMonth: string | null): HistoryEntry[] {
   const ordered = [...rows].sort((left, right) => (left.month < right.month ? 1 : left.month > right.month ? -1 : 0));
 
-  return ordered.map((pick) => {
+  return ordered.flatMap((pick): HistoryEntry[] => {
     const monthLabel = formatClubMonth(pick.month);
     const marked = featuredMonth !== null && pick.month === featuredMonth;
 
@@ -155,7 +185,7 @@ export function toHistory(rows: readonly PickRecord[], featuredMonth: string | n
       if (!promptText) {
         throw new Error(`Pick ${pick.id} is missing its prompt text`);
       }
-      return { kind: "prompt", month: pick.month, monthLabel, promptText, marked };
+      return [{ kind: "prompt", month: pick.month, monthLabel, promptText, marked, entryKey: pick.month }];
     }
 
     const title = blankToNull(pick.title);
@@ -164,15 +194,33 @@ export function toHistory(rows: readonly PickRecord[], featuredMonth: string | n
       throw new Error(`Pick ${pick.id} is missing its title or author`);
     }
 
-    return {
+    const main: BookHistoryEntry = {
       kind: "book",
       month: pick.month,
       monthLabel,
       title,
       author,
       pageCount: pick.pageCount,
+      genre: blankToNull(pick.genre),
+      coverUrl: historyCoverUrl(pick.coverUrl),
       marked,
+      entryKey: pick.month,
     };
+    if (!pick.alsoRead) return [main];
+
+    const also: BookHistoryEntry = {
+      kind: "book",
+      month: pick.month,
+      monthLabel,
+      title: pick.alsoRead.title,
+      author: pick.alsoRead.author,
+      pageCount: pick.alsoRead.pageCount,
+      genre: pick.alsoRead.genre,
+      coverUrl: historyCoverUrl(pick.alsoRead.coverUrl),
+      marked,
+      entryKey: `${pick.month}:also`,
+    };
+    return [main, also];
   });
 }
 

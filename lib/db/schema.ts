@@ -27,10 +27,38 @@ export const picks = pgTable(
     genre: text("genre"),
     lookupSource: text("lookup_source"),
     lookupKey: text("lookup_key"),
+    alsoTitle: text("also_title"),
+    alsoAuthor: text("also_author"),
+    alsoPublishedYear: integer("also_published_year"),
+    alsoCoverUrl: text("also_cover_url"),
+    alsoPageCount: integer("also_page_count"),
+    alsoGenre: text("also_genre"),
+    alsoLookupSource: text("also_lookup_source"),
+    alsoLookupKey: text("also_lookup_key"),
     meetingSettled: text("meeting_settled"),
   },
   () => [
     check("picks_month_is_first_day", sql`extract(day from "month") = 1`),
+    check(
+      "picks_also_book",
+      sql`(
+        "also_title" is null
+        and "also_author" is null
+        and "also_published_year" is null
+        and "also_cover_url" is null
+        and "also_page_count" is null
+        and "also_genre" is null
+        and "also_lookup_source" is null
+        and "also_lookup_key" is null
+      ) or (
+        "kind" = 'book'
+        and "also_title" is not null
+        and btrim("also_title") <> ''
+        and "also_author" is not null
+        and btrim("also_author") <> ''
+        and ("also_lookup_source" is null or "also_lookup_source" in ('open_library', 'manual'))
+      )`,
+    ),
     check(
       "picks_book_or_prompt",
       sql`(

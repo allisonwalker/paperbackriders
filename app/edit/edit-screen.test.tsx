@@ -19,6 +19,7 @@ function book(): PickRecord {
     genre: "Science fiction",
     lookupSource: "open_library",
     lookupKey: "OL45883W",
+    alsoRead: null,
   };
 }
 
@@ -36,6 +37,7 @@ function prompt(): PickRecord {
     genre: null,
     lookupSource: null,
     lookupKey: null,
+    alsoRead: null,
   };
 }
 

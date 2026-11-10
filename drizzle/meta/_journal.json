@@ -36,6 +36,13 @@
       "when": 1794332542699,
       "tag": "0004_square_prodigy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794333170015,
+      "tag": "0005_perpetual_fixer",
+      "breakpoints": true
     }
   ]
 }

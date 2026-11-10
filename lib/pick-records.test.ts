@@ -129,6 +129,26 @@ describe("record keeper writes", () => {
     expect(memory.calls).toEqual({ insert: 0, update: 0, delete: 0, find: 0 });
   });
 
+  test("saving a prompt clears the second-book columns", () => {
+    const source = readFileSync(path.join(root, "lib/pick-records.ts"), "utf8");
+    const start = source.indexOf("function rowValues");
+    const body = source.slice(start, source.indexOf("function toStored"));
+
+    expect(body).toContain('draft.kind === "prompt"');
+    for (const column of [
+      "alsoTitle",
+      "alsoAuthor",
+      "alsoPublishedYear",
+      "alsoCoverUrl",
+      "alsoPageCount",
+      "alsoGenre",
+      "alsoLookupSource",
+      "alsoLookupKey",
+    ]) {
+      expect(body).toContain(`${column}: null`);
+    }
+  });
+
   test("each write function calls requireRecordKeeper", () => {
     const source = readFileSync(path.join(root, "lib/pick-records.ts"), "utf8");
     for (const name of ["insertPick", "updatePick", "deletePick", "savePick"]) {
@@ -421,6 +441,7 @@ describe("this story does not call a catalog", () => {
     expect(screen).not.toContain("getDb");
     expect(form).not.toContain("requireRecordKeeper");
     expect(form).not.toContain("getDb");
+    expect(form).not.toMatch(/alsoTitle|alsoAuthor|also_title|also_author/);
     expect(actions).toContain("savePick");
     expect(actions).toContain("deletePick");
     expect(actions).toContain("RecordKeeperRequiredError");

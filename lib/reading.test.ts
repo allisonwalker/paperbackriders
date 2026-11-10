@@ -65,6 +65,38 @@ describe("reading totals", () => {
     expect(totals.genres).toEqual([{ label: "History", count: 1 }]);
   });
 
+  test("counts a second book once, and a prompt or a later month still adds nothing", () => {
+    const totals = readingTotals(
+      [
+        prompt("2026-10-01"),
+        book("2026-11-01", {
+          pageCount: 100,
+          genre: "Mystery",
+          alsoRead: { pageCount: 40, genre: "Fantasy" },
+        }),
+        book("2026-09-01", {
+          pageCount: 10,
+          genre: null,
+          alsoRead: { pageCount: null, genre: "History" },
+        }),
+        book("2026-12-01", {
+          pageCount: 999,
+          genre: "Romance",
+          alsoRead: { pageCount: 999, genre: "Romance" },
+        }),
+      ],
+      currentMonth,
+    );
+
+    expect(totals.bookCount).toBe(4);
+    expect(totals.pageTotal).toBe(150);
+    expect(totals.genres).toEqual([
+      { label: "Fantasy", count: 1 },
+      { label: "History", count: 1 },
+      { label: "Mystery", count: 1 },
+    ]);
+  });
+
   test("groups mixed-case spellings and shows the one that occurs most often", () => {
     const totals = readingTotals(
       [

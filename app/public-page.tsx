@@ -107,17 +107,28 @@ function History({ entries }: { entries: HistoryEntry[] }) {
       <ol className="bib">
         {entries.map((entry) =>
           entry.kind === "prompt" ? (
-            <li key={entry.month} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
+            <li key={entry.entryKey} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
+              <span className="jacket" />
               <span className="when">{entry.monthLabel}</span>
               <em className="prompt-line">{entry.promptText}</em>
             </li>
           ) : (
-            <li key={entry.month} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
+            <li key={entry.entryKey} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
+              <span className="jacket">
+                {entry.coverUrl ? (
+                  // Only an https covers.openlibrary.org URL, or the club's own Wicker Husband file, reaches this img.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={entry.coverUrl} alt="" />
+                ) : null}
+              </span>
               <span className="when">{entry.monthLabel}</span>
-              <span className="title">{entry.title}</span>
-              <span className="tail">
-                {entry.author}
-                {entry.pageCount != null ? ` · ${entry.pageCount} pages` : ""}
+              <span className="work">
+                <span className="title">{entry.title}</span>
+                <span className="author">{entry.author}</span>
+              </span>
+              <span className="facts">
+                {entry.pageCount != null ? <span className="pages">{entry.pageCount} pages</span> : null}
+                {entry.genre ? <span className="genre">{entry.genre}</span> : null}
               </span>
             </li>
           ),

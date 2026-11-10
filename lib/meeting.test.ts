@@ -20,6 +20,7 @@ function book(overrides: Partial<PickRecord> = {}): PickRecord {
     genre: "Fiction",
     lookupSource: null,
     lookupKey: null,
+    alsoRead: null,
     ...overrides,
   };
 }

@@ -12,6 +12,10 @@ export type ReadingPick = {
   meetingSettled?: MeetingSettlement | null;
   pageCount: number | null;
   genre: string | null;
+  alsoRead?: {
+    pageCount: number | null;
+    genre: string | null;
+  } | null;
 };
 
 export type GenreTotal = {
@@ -61,6 +65,11 @@ export function readingTotals(rows: readonly ReadingPick[], currentMonth: string
     bookCount += 1;
     pageTotal += pagesToAdd(row.pageCount);
     addGenre(groups, row.genre);
+    if (row.alsoRead) {
+      bookCount += 1;
+      pageTotal += pagesToAdd(row.alsoRead.pageCount);
+      addGenre(groups, row.alsoRead.genre);
+    }
   }
 
   return { bookCount, pageTotal, genres: genresToShow(groups) };
@@ -110,6 +119,10 @@ async function loadReadingRows(now: Date, timeZone: string): Promise<ReadingPick
       meetingSettled: picks.meetingSettled,
       pageCount: picks.pageCount,
       genre: picks.genre,
+      alsoTitle: picks.alsoTitle,
+      alsoAuthor: picks.alsoAuthor,
+      alsoPageCount: picks.alsoPageCount,
+      alsoGenre: picks.alsoGenre,
     })
     .from(picks);
 
@@ -120,7 +133,20 @@ async function loadReadingRows(now: Date, timeZone: string): Promise<ReadingPick
     meetingSettled: row.meetingSettled === "skipped" || row.meetingSettled === "happened" ? row.meetingSettled : null,
     pageCount: row.pageCount,
     genre: row.genre,
+    alsoRead: secondBook(row),
   }));
+}
+
+function secondBook(row: {
+  alsoTitle: string | null;
+  alsoAuthor: string | null;
+  alsoPageCount: number | null;
+  alsoGenre: string | null;
+}): ReadingPick["alsoRead"] {
+  const title = row.alsoTitle?.trim() ?? "";
+  const author = row.alsoAuthor?.trim() ?? "";
+  if (title.length === 0 || author.length === 0) return null;
+  return { pageCount: row.alsoPageCount, genre: row.alsoGenre };
 }
 
 function pagesToAdd(pageCount: number | null): number {

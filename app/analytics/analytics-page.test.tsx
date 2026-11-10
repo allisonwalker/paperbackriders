@@ -35,6 +35,11 @@ describe("book analytics page", () => {
     expect(html).toContain("4 books");
     expect(html).toContain("3 books");
     expect(html.indexOf("Reading totals")).toBeLessThan(html.indexOf("Meeting places"));
+    expect(html).toContain("genre-list");
+    expect(html).not.toContain("genre-chart");
+    expect(html).not.toContain("genre-tile");
+    const genres = html.slice(html.indexOf("Genres"), html.indexOf("Meeting places"));
+    expect(genres).not.toContain("<img");
     expect(html).toContain("No places are confirmed yet.");
     expect(html).not.toContain("<canvas");
   });

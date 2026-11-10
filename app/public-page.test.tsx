@@ -254,7 +254,10 @@ describe("public page", () => {
         title: "Piranesi",
         author: "Susanna Clarke",
         pageCount: 272,
+        genre: "Fantasy",
+        coverUrl: "https://covers.openlibrary.org/b/id/42-M.jpg",
         marked: false,
+        entryKey: "2026-12-01",
       },
       {
         kind: "book",
@@ -263,7 +266,22 @@ describe("public page", () => {
         title: "The Prestige",
         author: "Christopher Priest",
         pageCount: 404,
+        genre: null,
+        coverUrl: null,
         marked: true,
+        entryKey: "2026-10-01",
+      },
+      {
+        kind: "book",
+        month: "2026-10-01",
+        monthLabel: "October 2026",
+        title: "The Wicker Husband",
+        author: "Ursula Wills",
+        pageCount: 336,
+        genre: "Romance",
+        coverUrl: "/covers/the-wicker-husband.png",
+        marked: true,
+        entryKey: "2026-10-01:also",
       },
       {
         kind: "prompt",
@@ -271,6 +289,7 @@ describe("public page", () => {
         monthLabel: "March 2026",
         promptText: "Read a book from the year you were born.",
         marked: false,
+        entryKey: "2026-03-01",
       },
     ];
     const html = render(book, none, { status: "ready", entries });
@@ -285,17 +304,29 @@ describe("public page", () => {
     expect(octoberAt).toBeGreaterThan(decemberAt);
     expect(marchAt).toBeGreaterThan(octoberAt);
     expect(list).toContain("Piranesi");
-    expect(list).toContain("Susanna Clarke · 272 pages");
-    expect(list).toContain("Christopher Priest · 404 pages");
+    expect(list).toContain('<span class="author">Susanna Clarke</span>');
+    expect(list).not.toContain("Susanna Clarke ·");
+    expect(list).toContain("272 pages");
+    expect(list).toContain("Fantasy");
+    expect(list).toContain('<img src="https://covers.openlibrary.org/b/id/42-M.jpg"');
+    expect(list.indexOf("The Prestige")).toBeLessThan(list.indexOf("The Wicker Husband"));
+    expect(list).toContain('<span class="author">Christopher Priest</span>');
+    expect(list).toContain("404 pages");
+    expect(list).toContain('<img src="/covers/the-wicker-husband.png"');
+    expect(list).toContain("336 pages");
+    expect(list).toContain("Romance");
     expect(list).toContain("<em");
     expect(list).toContain("Read a book from the year you were born.");
+    const promptAt = list.indexOf("Read a book from the year you were born.");
+    const promptRow = list.slice(list.lastIndexOf("<li", promptAt), list.indexOf("</li>", promptAt));
+    expect(promptRow).toContain("<em");
+    expect(promptRow).not.toContain("<img");
     expect(list).toContain('aria-current="true"');
     expect(list).not.toContain("1995");
     expect(list).not.toContain("Fiction");
-    expect(list).not.toContain("<img");
     expect(list).not.toContain("<select");
     expect(list).not.toContain("<input");
-    expect(list).not.toContain("openlibrary.org");
+    expect(list).not.toContain("example.com");
   });
 
   test("shows the history region with no months when the club has no picks", () => {

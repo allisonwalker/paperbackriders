@@ -28,6 +28,7 @@ function promptRecord(): PickRecord {
     genre: null,
     lookupSource: null,
     lookupKey: null,
+    alsoRead: null,
   };
 }
 
