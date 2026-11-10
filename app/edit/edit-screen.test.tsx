@@ -65,6 +65,8 @@ describe("edit screen", () => {
     expect(html).not.toContain("Anyone with the link");
     expect(html).not.toContain('name="title"');
     expect(html).not.toContain("Find a book");
+    expect(html).not.toContain("Find this place");
+    expect(html).not.toContain("Powered by Geoapify");
     expect(html).not.toContain("prompt");
     expect(html).toContain('href="/"');
   });
@@ -283,15 +285,17 @@ describe("edit screen", () => {
     expect(meeting).toMatch(/<option[^>]*value="november"[^>]*selected/);
     expect(meeting).not.toMatch(/<option[^>]*value="march"[^>]*selected/);
     expect(meeting).toContain("Save meeting");
-    expect(meeting).toContain("Find this place");
     expect(meeting.indexOf('id="meeting-pick"')).toBeLessThan(meeting.indexOf('id="meeting-date"'));
     expect(meeting.indexOf('id="meeting-date"')).toBeLessThan(meeting.indexOf('id="meeting-time"'));
     expect(meeting.indexOf('id="meeting-time"')).toBeLessThan(meeting.indexOf('id="meeting-place"'));
-    expect(meeting.indexOf('id="meeting-place"')).toBeLessThan(meeting.indexOf("Find this place"));
-    expect(meeting.indexOf("Find this place")).toBeLessThan(meeting.indexOf("Save meeting"));
-    expect(meeting).toContain('name="query"');
-    expect(meeting).not.toContain("Save venue name");
+    expect(meeting.indexOf('id="meeting-place"')).toBeLessThan(meeting.indexOf("Save meeting"));
+    expect(meeting).not.toContain("Find this place");
+    expect(meeting).not.toContain("Confirm this place");
     expect(meeting).not.toContain("Clear confirmed place");
+    expect(meeting).not.toContain("Powered by Geoapify");
+    expect(meeting).not.toContain('name="query"');
+    expect(meeting).not.toContain('name="candidate"');
+    expect(meeting).not.toContain("Save venue name");
     expect(meeting).not.toContain("Save month");
     expect(meeting).not.toMatch(/geocode|leaflet|<iframe|type="tel"|type="email"|name="phone"|name="email"/i);
   });
@@ -383,6 +387,7 @@ describe("edit screen", () => {
     expect(offered).toContain('value="The Ruby"');
     expect(offered).toContain("The next meeting&#x27;s place is filled in.");
     expect(offered).not.toContain("Find this place");
+    expect(offered).not.toContain("Powered by Geoapify");
     expect(offered).toContain('value="2026-03-01"');
     expect(offered).not.toContain("Save meeting");
     expect(offered).not.toContain('name="place"');
@@ -397,8 +402,10 @@ describe("edit screen", () => {
     );
     expect(offeredMeeting).toContain('name="place"');
     expect(offeredMeeting).toContain('value="The Ruby"');
-    expect(offeredMeeting).toContain('name="query"');
-    expect(offeredMeeting).toContain("Find this place");
+    expect(offeredMeeting).toContain("Anyone with the link can read this.");
+    expect(offeredMeeting).not.toContain("Find this place");
+    expect(offeredMeeting).not.toContain("Powered by Geoapify");
+    expect(offeredMeeting).not.toContain('name="query"');
     expect(offeredMeeting).not.toContain('name="enteredName"');
     expect(offeredMeeting).not.toContain("Save venue name");
 
@@ -414,10 +421,32 @@ describe("edit screen", () => {
     );
     expect(saved).toContain("Venue name saved.");
     expect(saved).toContain('value="Cal Anderson Park"');
-    expect(saved).not.toContain("Find this place");
-    expect(saved).not.toContain("Powered by Geoapify");
+    expect(saved.indexOf('id="venue-name"')).toBeLessThan(saved.indexOf("Find this place"));
+    expect(saved).toContain("Find this place");
+    expect(saved).toContain("No place is confirmed for this month.");
+    expect(saved).toContain("A confirmed pin is public.");
+    expect(saved).toContain("Powered by Geoapify");
+    expect(saved).toContain("https://www.geoapify.com/");
+    expect(saved).toContain('name="month"');
+    expect(saved).toContain('value="2026-03-01"');
+    expect(saved).not.toContain('name="query"');
+    expect(saved).not.toContain('name="candidate"');
+    expect(saved).not.toContain("Confirm this place");
     expect(saved).not.toContain('value="The Ruby"');
     expect(saved).not.toContain("Save meeting");
+    const discussed = renderToStaticMarkup(
+      <EditScreen
+        access={{ status: "signed-in", email: "keeper@example.com" }}
+        {...editor}
+        selectedMonth="2026-11-01"
+        venue={{ status: "ready", enteredName: "The Ruby", placeLabel: null }}
+        meeting={meetingRow}
+      />,
+    );
+    expect(discussed).toContain("Find this place");
+    expect(discussed).toContain('value="The Ruby"');
+    expect(discussed).toContain('value="2026-11-01"');
+    expect(discussed).not.toContain("Save meeting");
     const savedMeeting = renderToStaticMarkup(
       <EditScreen
         access={{ status: "signed-in", email: "keeper@example.com" }}
@@ -425,17 +454,15 @@ describe("edit screen", () => {
         selectedMonth="2026-03-01"
         notice="venue"
         venue={{ status: "ready", enteredName: "Cal Anderson Park", placeLabel: null }}
-        meetingVenue={{ status: "ready", enteredName: "Cal Anderson Park", placeLabel: null }}
         meeting={meetingRow}
         tab="meeting"
       />,
     );
     expect(savedMeeting).toContain('value="The Ruby"');
-    expect(savedMeeting).toContain("Find this place");
-    expect(savedMeeting).toContain("Powered by Geoapify");
-    expect(savedMeeting).toContain("https://www.geoapify.com/");
-    expect(savedMeeting).toContain("A confirmed pin is public.");
-    expect(savedMeeting).toContain('value="2026-11-01"');
+    expect(savedMeeting).toContain("Anyone with the link can read this.");
+    expect(savedMeeting).not.toContain("Find this place");
+    expect(savedMeeting).not.toContain("Powered by Geoapify");
+    expect(savedMeeting).not.toContain("A confirmed pin is public.");
     expect(savedMeeting).not.toContain("Venue name saved.");
     expect(savedMeeting).not.toContain('name="enteredName"');
     expect(savedMeeting).not.toContain("Save venue name");
@@ -443,7 +470,7 @@ describe("edit screen", () => {
     expect(savedMeeting).not.toContain('name="candidate"');
   });
 
-  test("a confirmed place stays on the next meeting and off Picks", () => {
+  test("a confirmed place stays on the selected month and off Next meeting", () => {
     const confirmed = { status: "ready" as const, enteredName: "The Ruby", placeLabel: "The Ruby, Seattle, Washington" };
     const meetingRow = {
       status: "set" as const,
@@ -462,12 +489,29 @@ describe("edit screen", () => {
         meeting={meetingRow}
       />,
     );
-    expect(html).not.toContain("Place confirmed.");
-    expect(html).not.toContain("Confirmed place:");
-    expect(html).not.toContain("Clear confirmed place");
-    expect(html).not.toContain("Find this place");
+    expect(html).toContain("Place confirmed. Anyone with the link can see this pin.");
+    expect(html).toContain("Confirmed place: The Ruby, Seattle, Washington");
+    expect(html).toContain("Clear confirmed place");
+    expect(html).toContain("Find this place");
+    expect(html).toContain("Choose a public bar, park, or similar.");
+    expect(html).toContain("Powered by Geoapify");
     expect(html).toContain("does not change the next meeting or move a pin");
     expect(html).not.toContain("Save meeting");
+    const cleared = renderToStaticMarkup(
+      <EditScreen
+        access={{ status: "signed-in", email: "keeper@example.com" }}
+        {...editor}
+        selectedMonth="2026-03-01"
+        notice="place-cleared"
+        venue={{ status: "ready", enteredName: "The Ruby", placeLabel: null }}
+        meeting={meetingRow}
+      />,
+    );
+    expect(cleared).toContain("Confirmed place cleared. The venue name is still saved, and there is no pin.");
+    expect(cleared).toContain("Find this place");
+    expect(cleared).toContain("No place is confirmed for this month.");
+    expect(cleared).not.toContain("Clear confirmed place");
+    expect(cleared).not.toContain("Save meeting");
     const meeting = renderToStaticMarkup(
       <EditScreen
         access={{ status: "signed-in", email: "keeper@example.com" }}
@@ -475,17 +519,17 @@ describe("edit screen", () => {
         selectedMonth="2026-03-01"
         notice="place"
         venue={confirmed}
-        meetingVenue={confirmed}
         meeting={meetingRow}
         tab="meeting"
       />,
     );
-    expect(meeting).toContain("Place confirmed. Anyone with the link can see this pin.");
-    expect(meeting).toContain("Confirmed place: The Ruby, Seattle, Washington");
-    expect(meeting).toContain("Clear confirmed place");
-    expect(meeting).toContain("Find this place");
-    expect(meeting).toContain("Choose a public bar, park, or similar.");
-    expect(meeting).toContain("Powered by Geoapify");
+    expect(meeting).not.toContain("Place confirmed.");
+    expect(meeting).not.toContain("Confirmed place:");
+    expect(meeting).not.toContain("Clear confirmed place");
+    expect(meeting).not.toContain("Find this place");
+    expect(meeting).not.toContain("Powered by Geoapify");
+    expect(meeting).toContain("Anyone with the link can read this.");
+    expect(meeting).toContain("Save meeting");
     expect(meeting).not.toContain("Save venue name");
     expect(meeting).not.toContain('name="enteredName"');
   });
@@ -564,6 +608,7 @@ describe("edit screen", () => {
 
     expect(html).toContain("The venue name could not be loaded.");
     expect(html).not.toContain('name="enteredName"');
+    expect(html).not.toContain("Find this place");
     expect(html).toContain("Save month");
   });
 });

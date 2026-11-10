@@ -27,10 +27,8 @@ const CLEAR_MISSING = "This month has no venue name to clear.";
 const CLEAR_FAILED = "The confirmed place could not be cleared.";
 
 export async function searchPlaceAction(_previous: PlaceSearchFormState, formData: FormData): Promise<PlaceSearchFormState> {
-  const query = formData.get("query");
   const result = await searchPlacesForRecordKeeper({
     month: formData.get("month"),
-    query: typeof query === "string" ? query : undefined,
   });
   if (result.status === "matches") return { status: "matches", candidates: result.candidates };
   if (result.status === "empty") return { status: "empty", message: SEARCH_EMPTY };
@@ -47,7 +45,7 @@ export async function confirmPlaceAction(
   const outcome = await runConfirm(formData);
   if (outcome.status === "saved") {
     await publishPlaceChange();
-    redirect(`/edit?tab=meeting&place=1&month=${encodeURIComponent(outcome.month)}`);
+    redirect(`/edit?month=${encodeURIComponent(outcome.month)}&place=1`);
   }
   return outcome;
 }
@@ -59,7 +57,7 @@ export async function clearPlaceAction(
   const outcome = await runClear(formData);
   if (outcome.status === "cleared") {
     await publishPlaceChange();
-    redirect(`/edit?tab=meeting&place=cleared&month=${encodeURIComponent(outcome.month)}`);
+    redirect(`/edit?month=${encodeURIComponent(outcome.month)}&place=cleared`);
   }
   return outcome;
 }
@@ -69,7 +67,6 @@ async function runConfirm(formData: FormData): Promise<{ status: "saved"; month:
     const result = await confirmPlaceSelection({
       month: formData.get("month"),
       token: formData.get("candidate"),
-      place: formData.get("place"),
     });
     if (result.status === "saved") return { status: "saved", month: result.month };
     if (result.status === "rejected") return { status: "rejected", message: CONFIRM_REJECTED };

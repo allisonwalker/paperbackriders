@@ -229,6 +229,17 @@ describe("a pin's coordinates exist only after she selects a match", () => {
     await expect(clearPlaceSelection({ month: "2026-06-01" }, writeOptions(club.store))).resolves.toEqual({ status: "missing" });
   });
 
+  test("a month with no saved venue name does not gain a pin", async () => {
+    const club = memory();
+    const signed = token({ label: "The Ruby, Seattle", latitude: 47.615, longitude: -122.33, providerId: rubyId });
+
+    await expect(confirmPlaceSelection({ month: "2026-06-01", token: signed }, writeOptions(club.store))).resolves.toEqual({
+      status: "missing",
+    });
+    expect(club.places).toEqual([]);
+    expect(club.visits.has("2026-06-01")).toBe(false);
+  });
+
   test("a caller who is not the record keeper cannot confirm or clear", async () => {
     const club = memory();
     const signed = token({ label: "The Ruby, Seattle", latitude: 47.615, longitude: -122.33, providerId: rubyId });
@@ -287,6 +298,7 @@ describe("the meeting tab does not choose a place", () => {
     expect(meeting).not.toMatch(/\bvisits\b|\bplaces\b|placeId|enteredName|geoapify/i);
     expect(action).not.toMatch(/confirmPlaceSelection|searchPlacesForRecordKeeper|geoapify/i);
     expect(form).not.toMatch(/Find this place|Powered by Geoapify|name="candidate"|geoapify/i);
+    expect(selection).not.toContain("saveVenueName");
     expect(selection.match(/requireRecordKeeper\(/g)).toHaveLength(2);
     expect(selection).not.toMatch(/\bfetch\s*\(|GEOAPIFY_API_KEY|residential|detectHome/);
   });

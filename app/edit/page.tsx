@@ -8,7 +8,6 @@ import { loadVenueName } from "@/lib/visit-records";
 import { monthInputValue } from "@/lib/validation";
 import { EditScreen } from "./edit-screen";
 import { readEditorQuery } from "./editor-query";
-import { meetingPickMonth } from "./meeting-month";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,13 +53,6 @@ export default async function EditPage({ searchParams }: { searchParams: Promise
     loadEditorMeeting({ timeZone }),
     selectedMonth ? loadVenueName(selectedMonth) : Promise.resolve(null),
   ]);
-  const discussedMonth = meetingPickMonth(records, meeting);
-  const meetingVenue =
-    discussedMonth === null
-      ? null
-      : discussedMonth === selectedMonth
-        ? venue
-        : await loadVenueName(discussedMonth);
 
   return (
     <EditScreen
@@ -73,7 +65,6 @@ export default async function EditPage({ searchParams }: { searchParams: Promise
       currentMonth={currentMonth}
       meeting={meeting}
       venue={venue}
-      meetingVenue={meetingVenue}
       tab={tab}
     />
   );

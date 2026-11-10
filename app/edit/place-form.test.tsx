@@ -26,9 +26,14 @@ describe("place finder source", () => {
     const source = readFileSync(new URL("./place-form.tsx", import.meta.url), "utf8");
 
     expect(source).toContain("Find this place");
+    expect(source).toContain("Confirm this place");
+    expect(source).toContain("Clear confirmed place");
+    expect(source).toContain("A confirmed pin is public.");
     expect(source).toContain("Powered by Geoapify");
     expect(source).toContain("https://www.geoapify.com/");
     expect(source).toContain('type="submit"');
+    expect(source).not.toContain('name="query"');
+    expect(source).not.toContain('name="place"');
     expect(source).not.toMatch(/onChange|defaultChecked|latitude|longitude|GEOAPIFY|fetch\s*\(/);
     expect(source).not.toContain("places/lookup");
     expect(source).not.toContain("requireRecordKeeper");

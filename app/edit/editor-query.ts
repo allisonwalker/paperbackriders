@@ -42,7 +42,7 @@ export function editorTab(value: string | null): EditorTab {
 
 export function noticeForTab(tab: EditorTab, notice: EditorNotice | null): EditorNotice | null {
   if (notice === null) return null;
-  const onMeeting = notice === "meeting" || notice === "place" || notice === "place-cleared";
+  const onMeeting = notice === "meeting";
   if (tab === "meeting") return onMeeting ? notice : null;
   return onMeeting ? null : notice;
 }

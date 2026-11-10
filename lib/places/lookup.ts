@@ -84,7 +84,7 @@ export function parseClubPlaceBias(value: string | undefined): Bias | null {
 }
 
 export async function searchPlacesForRecordKeeper(
-  input: { month: unknown; query?: unknown },
+  input: { month: unknown },
   options?: PlaceSearchOptions,
 ): Promise<PlaceSearchState> {
   try {
@@ -116,11 +116,6 @@ export async function searchPlacesForRecordKeeper(
     return { status: "unavailable" };
   }
 
-  const typed = typeof input.query === "string" ? input.query.trim() : null;
-  if (typed !== null) {
-    if (!typed || typed.length > PLACE_LIMIT) return { status: "missing" };
-    return requestPlaces(typed, visit?.pickId ?? month, bias, apiKey, secret, now, options?.fetch ?? fetch);
-  }
   if (!visit || !visit.enteredName.trim()) return { status: "missing" };
 
   return requestPlaces(visit.enteredName.trim(), visit.pickId, bias, apiKey, secret, now, options?.fetch ?? fetch);

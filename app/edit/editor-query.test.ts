@@ -27,16 +27,24 @@ describe("editor query", () => {
     });
     expect(readEditorQuery({ month: "2026-03-01", place: "1" })).toEqual({
       selectedMonth: "2026-03-01",
-      notice: null,
+      notice: "place",
       tab: "picks",
     });
     expect(readEditorQuery({ tab: "meeting", month: "2026-03-01", place: "1" })).toEqual({
       selectedMonth: "2026-03-01",
-      notice: "place",
+      notice: null,
       tab: "meeting",
     });
-    expect(readEditorQuery({ month: "2026-03-01", place: "cleared" }).notice).toBeNull();
-    expect(readEditorQuery({ tab: "meeting", place: "cleared" }).notice).toBe("place-cleared");
+    expect(readEditorQuery({ month: "2026-03-01", place: "cleared" })).toEqual({
+      selectedMonth: "2026-03-01",
+      notice: "place-cleared",
+      tab: "picks",
+    });
+    expect(readEditorQuery({ tab: "meeting", place: "cleared" })).toEqual({
+      selectedMonth: null,
+      notice: null,
+      tab: "meeting",
+    });
   });
 
   test("only tab=meeting leaves Picks, and a confirmation stays on its own tab", () => {
@@ -49,8 +57,10 @@ describe("editor query", () => {
     expect(readEditorQuery({ tab: "meeting", saved: "1" }).notice).toBeNull();
     expect(readEditorQuery({ tab: "meeting", deleted: "1" }).notice).toBeNull();
     expect(readEditorQuery({ tab: "meeting", venue: "1" }).notice).toBeNull();
-    expect(readEditorQuery({ tab: "meeting", place: "1" }).notice).toBe("place");
-    expect(readEditorQuery({ tab: "meeting", place: "cleared" }).notice).toBe("place-cleared");
+    expect(readEditorQuery({ tab: "meeting", place: "1" }).notice).toBeNull();
+    expect(readEditorQuery({ tab: "meeting", place: "cleared" }).notice).toBeNull();
+    expect(readEditorQuery({ place: "1" }).notice).toBe("place");
+    expect(readEditorQuery({ place: "cleared" }).notice).toBe("place-cleared");
     expect(readEditorQuery({ tab: "picks", meeting: "1" }).notice).toBeNull();
   });
 
@@ -71,6 +81,21 @@ describe("editor query", () => {
     expect(readEditorQuery(editorQueryFromSearch("?meeting=1"))).toEqual({
       selectedMonth: null,
       notice: null,
+      tab: "picks",
+    });
+    expect(readEditorQuery(editorQueryFromSearch("?month=2026-03-01&place=1"))).toEqual({
+      selectedMonth: "2026-03-01",
+      notice: "place",
+      tab: "picks",
+    });
+    expect(readEditorQuery(editorQueryFromSearch("?tab=meeting&place=1"))).toEqual({
+      selectedMonth: null,
+      notice: null,
+      tab: "meeting",
+    });
+    expect(readEditorQuery(editorQueryFromSearch("?month=2026-03-01&place=cleared"))).toMatchObject({
+      selectedMonth: "2026-03-01",
+      notice: "place-cleared",
       tab: "picks",
     });
   });

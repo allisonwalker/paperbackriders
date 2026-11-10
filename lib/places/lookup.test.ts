@@ -159,20 +159,22 @@ describe("place search", () => {
     expect(new Headers(calls[0]?.init?.headers).get("cookie")).toBeNull();
   });
 
-  test("a typed place is what gets searched, not the stored venue name", async () => {
+  test("a submitted query does not replace the saved venue name", async () => {
     const { calls, fetchImpl } = fetchSpy(
       jsonResponse({
-        features: [feature({ label: "Brix Tavern, Portland", latitude: 47.62, longitude: -122.32, placeId: rubyId })],
+        features: [feature({ label: "The Ruby, Seattle, Washington", latitude: 47.62, longitude: -122.32, placeId: rubyId })],
       }),
     );
+    const input = { month: march, query: "  Brix Tavern  " };
 
     const result = await searchPlacesForRecordKeeper(
-      { month: march, query: "  Brix Tavern  " },
+      input,
       searchOptions(fetchImpl, keeper, async () => ({ pickId, enteredName: venueName })),
     );
 
     expect(result.status).toBe("matches");
-    expect(new URL(calls[0]?.url ?? "").searchParams.get("text")).toBe("Brix Tavern");
+    expect(new URL(calls[0]?.url ?? "").searchParams.get("text")).toBe(venueName);
+    expect(new URL(calls[0]?.url ?? "").searchParams.get("text")).not.toBe("Brix Tavern");
   });
 
   test("a single result is still not chosen", async () => {
@@ -270,6 +272,13 @@ describe("place search", () => {
     await expect(
       searchPlacesForRecordKeeper({ month: march }, searchOptions(fetchImpl, keeper, async () => null)),
     ).resolves.toEqual({ status: "missing" });
+    const typed = { month: march, query: "Brix Tavern" };
+    await expect(searchPlacesForRecordKeeper(typed, searchOptions(fetchImpl, keeper, async () => null))).resolves.toEqual({
+      status: "missing",
+    });
+    await expect(
+      searchPlacesForRecordKeeper({ month: march }, searchOptions(fetchImpl, keeper, async () => ({ pickId, enteredName: "   " }))),
+    ).resolves.toEqual({ status: "missing" });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -347,6 +356,11 @@ describe("where Geoapify may be requested", () => {
     expect(action).toContain("use server");
     expect(action).toContain('formData.get("month")');
     expect(action).toContain('formData.get("candidate")');
+    expect(action).toContain("/edit?month=${encodeURIComponent(outcome.month)}&place=1");
+    expect(action).toContain("/edit?month=${encodeURIComponent(outcome.month)}&place=cleared");
+    expect(action).not.toContain("tab=meeting");
+    expect(action).not.toContain('formData.get("query")');
+    expect(action).not.toContain('formData.get("place")');
     expect(action).not.toMatch(/\bfetch\s*\(|GEOAPIFY_API_KEY|latitude|longitude/);
 
     for (const file of [

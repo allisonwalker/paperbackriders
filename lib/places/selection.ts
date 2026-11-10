@@ -4,7 +4,6 @@ import { getDb } from "../db/client";
 import { picks, places, visits } from "../db/schema";
 import { requireRecordKeeper, RecordKeeperRequiredError, type SessionEmail } from "../record-keeper";
 import { verifyPlaceCandidate, type PlaceCandidateClaims } from "./candidate";
-import { saveVenueName } from "../visit-records";
 
 /**
  * Confirming or clearing the real place for one club month.
@@ -57,7 +56,7 @@ class VisitGoneError extends Error {
 }
 
 export async function confirmPlaceSelection(
-  input: { month: unknown; token: unknown; place?: unknown },
+  input: { month: unknown; token: unknown },
   options?: PlaceSelectionOptions,
 ): Promise<ConfirmPlaceResult> {
   await requireRecordKeeper(options?.readSession, options?.allowlisted);
@@ -73,17 +72,7 @@ export async function confirmPlaceSelection(
   const store = options?.store ?? defaultStore();
   let pickId: string | undefined;
   try {
-    let visit = await store.findVisit(month);
-    if (!visit && !options?.store) {
-      const name = typeof input.place === "string" ? input.place.trim() : "";
-      if (!name) return { status: "missing" };
-      const created = await saveVenueName(
-        { month, enteredName: name },
-        { readSession: options?.readSession, allowlisted: options?.allowlisted },
-      );
-      if (created.status !== "saved") return { status: "missing" };
-      visit = await store.findVisit(month);
-    }
+    const visit = await store.findVisit(month);
     if (!visit) return { status: "missing" };
     pickId = visit.pickId;
     const saved = await store.saveConfirmedPlace(visit.id, {
