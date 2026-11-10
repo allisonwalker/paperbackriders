@@ -1,16 +1,14 @@
-import Link from "next/link";
 import type { ReadingState } from "@/lib/reading";
 import type { PinsState } from "@/lib/visits";
+import { PublicNav } from "../public-nav";
 import { MeetingMap } from "./meeting-map";
 
 export function AnalyticsPage({ reading, pins }: { reading: ReadingState; pins: PinsState }) {
   return (
     <>
-      <header className="analytics-banner">
-        <p className="kicker">
-          <Link href="/">Paperback Riders</Link>
-        </p>
-        <h1>Book analytics</h1>
+      <header className="brand">
+        <PublicNav current="analytics" />
+        <h1>Analytics</h1>
       </header>
       <main>
         {reading.status === "error" ? (

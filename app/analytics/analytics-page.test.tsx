@@ -22,7 +22,11 @@ describe("book analytics page", () => {
       ],
     });
 
-    expect(html).toContain("Book analytics");
+    expect(html).toContain(">Analytics</h1>");
+    expect(html).not.toContain("Book analytics");
+    expect(html).toContain(">Catalog</a>");
+    expect(html).toContain('href="/analytics"');
+    expect(html).not.toContain("paperback-riders-mark.jpg");
     expect(html).toContain("12");
     expect(html).toContain("books");
     expect(html).toContain("4,812");
@@ -56,6 +60,8 @@ describe("book analytics page", () => {
     expect(html).not.toContain("No genres.");
     expect(html).not.toContain("No places are confirmed yet.");
     expect(html).not.toContain("The map could not load.");
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/analytics"');
   });
 
   test("keeps the totals when the pin query fails", () => {

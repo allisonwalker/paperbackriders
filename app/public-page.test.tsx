@@ -50,7 +50,13 @@ describe("public page", () => {
     expect(header).toContain("Paperback");
     expect(header).toContain("Riders");
     expect(header).toContain('src="/paperback-riders-mark.jpg"');
-    expect(header).not.toContain("pick");
+    expect(header).not.toContain("pick")
+    expect(header).toContain(">Catalog</a>");
+    expect(header).toContain(">Analytics</a>");
+    expect(header).toContain('href="/"');
+    expect(header).toContain('href="/analytics"');
+    expect(header).toContain('aria-current="page"');
+    expect(header.indexOf('class="public-nav"')).toBeLessThan(header.indexOf('class="logo"'));
   });
 
   test("puts the current month label immediately above the cover and the facts on one line", () => {
@@ -146,6 +152,8 @@ describe("public page", () => {
     expect(html).not.toContain(NO_UPCOMING_MEETING);
     expect(html).not.toContain("Meets in 10 days");
     expect(html).toContain('src="/paperback-riders-mark.jpg"');
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/analytics"');
   });
 
   test("puts the meeting dateline under the featured title", () => {
@@ -293,8 +301,10 @@ describe("public page", () => {
 
     expect(html).toContain("Meets today");
     expect(html).toContain("Ada&#x27;s porch &lt;script&gt;alert(1)&lt;/script&gt; ada@example.com");
-    expect(html).not.toContain("<script>alert");
-    expect(html).not.toContain("mailto:");
-    expect(html).not.toContain("<a ");
+    const datelineStart = html.indexOf('class="dateline"');
+    const dateline = html.slice(datelineStart, html.indexOf("</p>", datelineStart));
+    expect(dateline).not.toContain("<script>alert");
+    expect(dateline).not.toContain("mailto:");
+    expect(dateline).not.toContain("<a ");
   });
 });

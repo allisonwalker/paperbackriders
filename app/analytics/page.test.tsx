@@ -27,6 +27,8 @@ describe("analytics route", () => {
     expect(source).not.toMatch(/["']use client["']/);
     expect(source).not.toMatch(/maplibre|geoapify|openlibrary|openfreemap/i);
     expect(source).toContain("loadMeetingPins");
+    expect(source).toContain("Analytics · Paperback Riders");
+    expect(source).not.toContain("Book analytics");
   });
 
   test("puts the totals in the first HTML response", async () => {
@@ -40,7 +42,8 @@ describe("analytics route", () => {
 
     const html = renderToStaticMarkup(await Page());
 
-    expect(html).toContain("Book analytics");
+    expect(html).toContain(">Analytics</h1>");
+    expect(html).not.toContain("Book analytics");
     expect(html).toContain(">2<");
     expect(html).toContain(">500<");
     expect(html).toContain("Fantasy");
@@ -59,5 +62,7 @@ describe("analytics route", () => {
     expect(html).not.toContain("total-value");
     expect(html).not.toContain("books");
     expect(html).not.toContain("pages");
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/analytics"');
   });
 });

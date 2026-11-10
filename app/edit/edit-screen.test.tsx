@@ -69,6 +69,10 @@ describe("edit screen", () => {
     expect(html).not.toContain("Powered by Geoapify");
     expect(html).not.toContain("prompt");
     expect(html).toContain('href="/"');
+    expect(html).toContain("Paperback");
+    expect(html).not.toContain('href="/analytics"');
+    expect(html).not.toContain(">Catalog</a>");
+    expect(html).not.toContain(">Analytics</a>");
   });
 
   test("a failed check does not present a signed-in editor", () => {

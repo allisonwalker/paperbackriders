@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Book analytics",
+  title: "Analytics · Paperback Riders",
   description:
     "How many books Paperback Riders has read, how many pages those books add up to, the top genres, and where the club has met.",
 };
