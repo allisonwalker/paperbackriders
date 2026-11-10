@@ -1,11 +1,8 @@
-import { PublicNav } from "./public-nav";
-
 const MARK_SRC = "/paperback-riders-mark.jpg";
 
-export function PublicMasthead({ current }: { current: "catalog" | "analytics" }) {
+export function PublicMasthead() {
   return (
     <header className="brand">
-      <PublicNav current={current} />
       <div className="logo">
         {/* The mark is a local illustration. A plain img does not send it through the optimizer. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -55,13 +55,18 @@ describe("public page", () => {
     expect(heading).not.toContain("<a");
     expect(header).toContain('src="/paperback-riders-mark.jpg"');
     expect(header.match(/<h1/g)).toHaveLength(1);
-    expect(header).not.toContain("pick")
-    expect(header).toContain(">Catalog</a>");
-    expect(header).toContain(">Analytics</a>");
-    expect(header).toContain('href="/"');
-    expect(header).toContain('href="/analytics"');
-    expect(header).toContain('aria-current="page"');
-    expect(header.indexOf('class="public-nav"')).toBeLessThan(header.indexOf('class="logo"'));
+    expect(header).not.toContain("pick");
+    expect(header).not.toContain("public-nav");
+    expect(header).not.toContain(">Catalog</a>");
+    const nav = html.slice(html.indexOf('class="public-nav"'), html.indexOf("<section"));
+    expect(html.indexOf("</header>")).toBeLessThan(html.indexOf('class="public-nav"'));
+    expect(nav).toContain(">Catalog</a>");
+    expect(nav).toContain(">Analytics</a>");
+    expect(nav).toContain('href="/"');
+    expect(nav).toContain('href="/analytics"');
+    expect(nav).toMatch(/<a(?=[^>]*href="\/")(?=[^>]*aria-current="page")[^>]*>/);
+    expect(nav).not.toMatch(/<a(?=[^>]*href="\/analytics")(?=[^>]*aria-current="page")[^>]*>/);
+    expect(nav).not.toContain("/edit");
   });
 
   test("puts the current month label immediately above the cover and the facts on one line", () => {
@@ -180,6 +185,8 @@ describe("public page", () => {
     expect(html).toContain('src="/paperback-riders-mark.jpg"');
     expect(html).toContain('href="/"');
     expect(html).toContain('href="/analytics"');
+    expect(html).toContain('class="public-nav"');
+    expect(html).not.toContain("/edit");
   });
 
   test("puts the meeting dateline under the featured title", () => {
@@ -372,14 +379,24 @@ describe("public page", () => {
     const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
     const narrow = css.slice(css.indexOf("@media (max-width: 720px)"));
 
-    expect(page).toContain("<PublicMasthead current=\"catalog\" />");
-    expect(analytics).toContain("<PublicMasthead current=\"analytics\" />");
+    expect(page).toContain("<PublicMasthead />");
+    expect(analytics).toContain("<PublicMasthead />");
+    expect(page).toContain('<PublicNav current="catalog" />');
+    expect(analytics).toContain('<PublicNav current="analytics" />');
     expect(masthead.indexOf("<img")).toBeLessThan(masthead.indexOf("<h1>"));
     expect(masthead).not.toContain("next/link");
+    expect(masthead).not.toContain("public-nav");
     expect(css).toMatch(/\.logo h1 \{[^}]*font-size: clamp\(2\.7rem, 6\.6vw, 5rem\)/);
     expect(css).toMatch(/\.public-nav a \{[^}]*font-size: 0\.95rem/);
+    expect(css).toMatch(/\.public-nav \{[^}]*border-top: 3px solid var\(--ink\)/);
+    expect(css).toMatch(/\.public-nav a\[aria-current="page"\] \{[^}]*background: var\(--ink\)/);
+    expect(css).toMatch(/\.public-nav a\[aria-current="page"\] \{[^}]*color: var\(--paper\)/);
+    expect(css).not.toMatch(/\.public-nav[^}]*box-shadow/);
+    expect(css).not.toMatch(/\.public-nav[^}]*--shirt/);
+    expect(css).toMatch(/main > \.public-nav \+ section[\s\S]*border-top: 0/);
     expect(narrow).toContain("flex-direction: column");
     expect(narrow).toContain("order: -1");
+    expect(narrow).toMatch(/\.public-nav \{[^}]*flex-wrap: nowrap/);
     expect(narrow).toMatch(/\.logo h1 \{[^}]*font-size: clamp\(2\.2rem, 12vw, 3\.1rem\)/);
   });
 });

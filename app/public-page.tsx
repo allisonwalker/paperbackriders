@@ -2,6 +2,7 @@ import { UNSELECTED_PICK } from "@/lib/current-pick";
 import { NO_UPCOMING_MEETING, type MeetingView } from "@/lib/meeting";
 import type { BookHero, FeaturedPickState, HistoryEntry, HistoryState, PromptHero } from "@/lib/picks";
 import { PublicMasthead } from "./public-masthead";
+import { PublicNav } from "./public-nav";
 
 export function PublicPage({
   featured,
@@ -14,8 +15,9 @@ export function PublicPage({
 }) {
   return (
     <>
-      <PublicMasthead current="catalog" />
+      <PublicMasthead />
       <main>
+        <PublicNav current="catalog" />
         {featured.status === "error" || history.status === "error" ? (
           <p role="alert">This page could not load.</p>
         ) : (

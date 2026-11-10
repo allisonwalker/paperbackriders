@@ -32,10 +32,13 @@ describe("book analytics page", () => {
     expect(header.match(/<h1/g)).toHaveLength(1);
     expect(header).not.toContain(">Analytics</h1>");
     expect(html).not.toContain("Book analytics");
-    expect(html).toContain(">Catalog</a>");
-    expect(html).toContain('href="/analytics"');
-    expect(header).toContain('aria-current="page"');
-    expect(header.indexOf('class="public-nav"')).toBeLessThan(header.indexOf('class="logo"'));
+    expect(header).not.toContain("public-nav");
+    const nav = html.slice(html.indexOf('class="public-nav"'), html.indexOf("<section"));
+    expect(html.indexOf("</header>")).toBeLessThan(html.indexOf('class="public-nav"'));
+    expect(nav).toContain(">Catalog</a>");
+    expect(nav).toContain('href="/analytics"');
+    expect(nav).toMatch(/<a(?=[^>]*href="\/analytics")(?=[^>]*aria-current="page")[^>]*>/);
+    expect(nav).not.toContain("/edit");
     expect(html).toContain("12");
     expect(html).toContain("books");
     expect(html).toContain("4,812");

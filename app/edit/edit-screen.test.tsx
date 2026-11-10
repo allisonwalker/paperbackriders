@@ -137,6 +137,10 @@ describe("edit screen", () => {
     expect(html).toContain("Where this month met.");
     expect(html).toContain("this is not a map pin");
     expect(html).toContain(">Picks<");
+    expect(html).toContain("Next meeting");
+    expect(html).not.toContain("public-nav");
+    expect(html).not.toContain(">Catalog<");
+    expect(html).not.toContain(">Analytics<");
     expect(html).toMatch(/<a(?=[^>]*href="\/edit\?month=2026-11-01")(?=[^>]*aria-current="page")[^>]*>/);
     expect(html).toMatch(/href="\/edit\?tab=meeting"/);
     expect(html).not.toMatch(/href="\/edit\?tab=meeting&/);

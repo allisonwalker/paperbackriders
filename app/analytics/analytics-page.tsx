@@ -1,13 +1,15 @@
 import type { ReadingState } from "@/lib/reading";
 import type { PinsState } from "@/lib/visits";
 import { PublicMasthead } from "../public-masthead";
+import { PublicNav } from "../public-nav";
 import { MeetingMap } from "./meeting-map";
 
 export function AnalyticsPage({ reading, pins }: { reading: ReadingState; pins: PinsState }) {
   return (
     <>
-      <PublicMasthead current="analytics" />
+      <PublicMasthead />
       <main>
+        <PublicNav current="analytics" />
         {reading.status === "error" ? (
           <p role="alert">This page could not load.</p>
         ) : (
