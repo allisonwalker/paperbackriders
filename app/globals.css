@@ -587,15 +587,6 @@ main a:focus-visible {
   outline-offset: 3px;
 }
 
-.brand > h1 {
-  margin: 0.85rem 0 0;
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-size: clamp(2.2rem, 5vw, 3.4rem);
-  font-weight: 680;
-  letter-spacing: -0.03em;
-  line-height: 0.95;
-}
-
 .total {
   margin: 0;
 }

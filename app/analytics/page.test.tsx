@@ -42,7 +42,10 @@ describe("analytics route", () => {
 
     const html = renderToStaticMarkup(await Page());
 
-    expect(html).toContain(">Analytics</h1>");
+    expect(html).toContain('src="/paperback-riders-mark.jpg"');
+    expect(html).toContain("Paperback");
+    expect(html).toContain("Riders");
+    expect(html).not.toContain(">Analytics</h1>");
     expect(html).not.toContain("Book analytics");
     expect(html).toContain(">2<");
     expect(html).toContain(">500<");

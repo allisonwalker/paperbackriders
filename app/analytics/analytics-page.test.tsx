@@ -22,11 +22,20 @@ describe("book analytics page", () => {
       ],
     });
 
-    expect(html).toContain(">Analytics</h1>");
+    const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+    const heading = header.slice(header.indexOf("<h1"), header.indexOf("</h1>"));
+    expect(heading).toContain("Paperback");
+    expect(heading).toContain("Riders");
+    expect(heading).toContain("<br/>");
+    expect(heading).not.toContain("<a");
+    expect(header).toContain('src="/paperback-riders-mark.jpg"');
+    expect(header.match(/<h1/g)).toHaveLength(1);
+    expect(header).not.toContain(">Analytics</h1>");
     expect(html).not.toContain("Book analytics");
     expect(html).toContain(">Catalog</a>");
     expect(html).toContain('href="/analytics"');
-    expect(html).not.toContain("paperback-riders-mark.jpg");
+    expect(header).toContain('aria-current="page"');
+    expect(header.indexOf('class="public-nav"')).toBeLessThan(header.indexOf('class="logo"'));
     expect(html).toContain("12");
     expect(html).toContain("books");
     expect(html).toContain("4,812");
@@ -59,6 +68,9 @@ describe("book analytics page", () => {
 
     expect(html).toContain("This page could not load.");
     expect(html).toContain('role="alert"');
+    expect(html).toContain('src="/paperback-riders-mark.jpg"');
+    expect(html).toContain("Paperback");
+    expect(html).toContain("Riders");
     expect(html).not.toContain("total-value");
     expect(html).not.toContain("books");
     expect(html).not.toContain("pages");

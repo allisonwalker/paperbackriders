@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { NO_UPCOMING_MEETING, type MeetingView } from "@/lib/meeting";
@@ -47,9 +48,13 @@ describe("public page", () => {
     const html = render({ status: "empty" });
     const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
 
-    expect(header).toContain("Paperback");
-    expect(header).toContain("Riders");
+    const heading = header.slice(header.indexOf("<h1"), header.indexOf("</h1>"));
+    expect(heading).toContain("Paperback");
+    expect(heading).toContain("Riders");
+    expect(heading).toContain("<br/>");
+    expect(heading).not.toContain("<a");
     expect(header).toContain('src="/paperback-riders-mark.jpg"');
+    expect(header.match(/<h1/g)).toHaveLength(1);
     expect(header).not.toContain("pick")
     expect(header).toContain(">Catalog</a>");
     expect(header).toContain(">Analytics</a>");
@@ -358,5 +363,23 @@ describe("public page", () => {
     expect(dateline).not.toContain("<script>alert");
     expect(dateline).not.toContain("mailto:");
     expect(dateline).not.toContain("<a ");
+  });
+
+  test("shares the catalog lockup, with the mark left of the name until 720px", () => {
+    const page = readFileSync(new URL("./public-page.tsx", import.meta.url), "utf8");
+    const analytics = readFileSync(new URL("./analytics/analytics-page.tsx", import.meta.url), "utf8");
+    const masthead = readFileSync(new URL("./public-masthead.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
+    const narrow = css.slice(css.indexOf("@media (max-width: 720px)"));
+
+    expect(page).toContain("<PublicMasthead current=\"catalog\" />");
+    expect(analytics).toContain("<PublicMasthead current=\"analytics\" />");
+    expect(masthead.indexOf("<img")).toBeLessThan(masthead.indexOf("<h1>"));
+    expect(masthead).not.toContain("next/link");
+    expect(css).toMatch(/\.logo h1 \{[^}]*font-size: clamp\(2\.7rem, 6\.6vw, 5rem\)/);
+    expect(css).toMatch(/\.public-nav a \{[^}]*font-size: 0\.95rem/);
+    expect(narrow).toContain("flex-direction: column");
+    expect(narrow).toContain("order: -1");
+    expect(narrow).toMatch(/\.logo h1 \{[^}]*font-size: clamp\(2\.2rem, 12vw, 3\.1rem\)/);
   });
 });
