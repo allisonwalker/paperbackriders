@@ -27,6 +27,7 @@ export const picks = pgTable(
     genre: text("genre"),
     lookupSource: text("lookup_source"),
     lookupKey: text("lookup_key"),
+    meetingSettled: text("meeting_settled"),
   },
   () => [
     check("picks_month_is_first_day", sql`extract(day from "month") = 1`),
@@ -54,6 +55,10 @@ export const picks = pgTable(
         and "lookup_key" is null
       )`,
     ),
+    check(
+      "picks_meeting_settled",
+      sql`"meeting_settled" is null or "meeting_settled" in ('skipped', 'happened')`,
+    ),
   ],
 );
 
@@ -64,15 +69,25 @@ export const meetings = pgTable(
     pickId: uuid("pick_id")
       .notNull()
       .references(() => picks.id, { onDelete: "restrict" }),
-    startsAt: timestamp("starts_at", { withTimezone: true, mode: "date" }).notNull(),
-    place: text("place").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true, mode: "date" }),
+    place: text("place"),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
     singleton: boolean("singleton").notNull().default(true),
   },
   (table) => [
     unique("meetings_one_row").on(table.singleton),
     check("meetings_is_singleton", sql`${table.singleton} = true`),
-    check("meetings_place_present", sql`btrim(${table.place}) <> ''`),
+    check(
+      "meetings_scheduled_or_unscheduled",
+      sql`(
+        ${table.startsAt} is not null
+        and ${table.place} is not null
+        and btrim(${table.place}) <> ''
+      ) or (
+        ${table.startsAt} is null
+        and ${table.place} is null
+      )`,
+    ),
   ],
 );
 

@@ -1,9 +1,15 @@
-import { clubMonthStart, clubTimeZone, isMonthStart } from "./club-date";
-import { loadPicksOnOrBefore, type PickKind } from "./picks";
+import { clubCalendarDate, clubMonthStart, clubTimeZone, isMonthStart } from "./club-date";
+import { reachThrough, type CurrentMeeting, type MeetingSettlement } from "./current-pick";
+import { getDb } from "./db/client";
+import { picks } from "./db/schema";
+import { loadMeetingAnchor, rememberHappenedMeeting } from "./meeting-settlement";
+import type { PickKind } from "./picks";
 
 export type ReadingPick = {
+  id?: string;
   month: string;
   kind: PickKind;
+  meetingSettled?: MeetingSettlement | null;
   pageCount: number | null;
   genre: string | null;
 };
@@ -63,18 +69,58 @@ export function readingTotals(rows: readonly ReadingPick[], currentMonth: string
 export async function loadReadingTotals(options?: {
   now?: Date;
   timeZone?: string;
-  loadRows?: (currentMonth: string) => Promise<ReadingPick[]>;
+  loadRows?: () => Promise<ReadingPick[]>;
+  loadMeeting?: () => Promise<CurrentMeeting | null>;
 }): Promise<ReadingState> {
   try {
     const now = options?.now ?? new Date();
     const timeZone = options?.timeZone ?? clubTimeZone();
-    const currentMonth = clubMonthStart(now, timeZone);
-    const rows = await (options?.loadRows ?? loadPicksOnOrBefore)(currentMonth);
-    return { status: "ready", ...readingTotals(rows, currentMonth) };
+    const rows = await (options?.loadRows ?? (() => loadReadingRows(now, timeZone)))();
+    const meeting = options?.loadMeeting
+      ? await options.loadMeeting()
+      : options?.loadRows
+        ? null
+        : await loadMeetingAnchor(now, timeZone);
+    const boundary = reachThrough(
+      rows.map((row, index) => ({
+        id: row.id ?? row.month ?? String(index),
+        month: row.month,
+        meetingSettled: row.meetingSettled,
+      })),
+      {
+        today: clubCalendarDate(now, timeZone),
+        calendarMonth: clubMonthStart(now, timeZone),
+        meeting,
+      },
+    );
+    return { status: "ready", ...readingTotals(rows, boundary ?? "9999-12-01") };
   } catch (error) {
     logReadingFailure(error);
     return { status: "error" };
   }
+}
+
+async function loadReadingRows(now: Date, timeZone: string): Promise<ReadingPick[]> {
+  await rememberHappenedMeeting(now, timeZone);
+  const rows = await getDb()
+    .select({
+      id: picks.id,
+      month: picks.month,
+      kind: picks.kind,
+      meetingSettled: picks.meetingSettled,
+      pageCount: picks.pageCount,
+      genre: picks.genre,
+    })
+    .from(picks);
+
+  return rows.map((row) => ({
+    id: row.id,
+    month: row.month,
+    kind: row.kind === "prompt" ? "prompt" : "book",
+    meetingSettled: row.meetingSettled === "skipped" || row.meetingSettled === "happened" ? row.meetingSettled : null,
+    pageCount: row.pageCount,
+    genre: row.genre,
+  }));
 }
 
 function pagesToAdd(pageCount: number | null): number {

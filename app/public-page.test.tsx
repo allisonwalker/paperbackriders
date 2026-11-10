@@ -134,9 +134,30 @@ describe("public page", () => {
     expect(html).not.toContain("example.com");
   });
 
+  test("says the next book has not been selected", () => {
+    const html = render({ status: "unselected" });
+
+    expect(html).toContain("The next book hasn&#x27;t been selected. Watch this space.");
+    expect(html).toContain("<h2");
+    expect(html).not.toContain("could not load");
+  });
+
+  test("shows an unscheduled meeting without a date or a place", () => {
+    const html = render(book, {
+      status: "unscheduled",
+      lead: "Date and place to come",
+      discussing: "The Prestige by Christopher Priest",
+    });
+
+    expect(html).toContain("Date and place to come");
+    expect(html).toContain("discussing The Prestige by Christopher Priest");
+    expect(html).not.toContain("Meets in");
+    expect(html).not.toContain("Priya");
+  });
+
   test("leaves the hero empty when there is no pick and still says there is no meeting", () => {
     const html = render({ status: "empty" });
-    expect(html).toContain('aria-label="This month&#x27;s pick"');
+    expect(html).toContain('aria-label="Current pick"');
     expect(html).not.toContain("<h2");
     expect(html).not.toContain("could not load");
     expect(html).not.toContain("’s pick");

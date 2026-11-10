@@ -1,3 +1,4 @@
+import { UNSELECTED_PICK } from "@/lib/current-pick";
 import { NO_UPCOMING_MEETING, type MeetingView } from "@/lib/meeting";
 import type { BookHero, FeaturedPickState, HistoryEntry, HistoryState, PromptHero } from "@/lib/picks";
 import { PublicNav } from "./public-nav";
@@ -31,8 +32,9 @@ export function PublicPage({
         {featured.status === "error" || history.status === "error" ? (
           <p role="alert">This page could not load.</p>
         ) : (
-          <section aria-label="This month's pick">
+          <section aria-label="Current pick">
             {featured.status === "ready" ? <Hero pickLabel={featured.pickLabel} hero={featured.hero} /> : null}
+            {featured.status === "unselected" ? <h2>{UNSELECTED_PICK}</h2> : null}
             <Dateline meeting={meeting} />
             <History entries={history.entries} />
           </section>
@@ -74,6 +76,15 @@ function Hero({ pickLabel, hero }: { pickLabel: string; hero: BookHero | PromptH
 function Dateline({ meeting }: { meeting: MeetingView }) {
   if (meeting.status === "none") {
     return <p className="dateline">{NO_UPCOMING_MEETING}</p>;
+  }
+
+  if (meeting.status === "unscheduled") {
+    return (
+      <p className="dateline">
+        <strong>{meeting.lead}</strong>
+        <span>discussing {meeting.discussing}</span>
+      </p>
+    );
   }
 
   return (

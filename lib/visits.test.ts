@@ -162,13 +162,17 @@ describe("load meeting pins", () => {
     error.mockRestore();
   });
 
-  test("still drops a future month when the loader returns one", async () => {
+  test("pins a current pick whose month has not started", async () => {
     const pins = await loadMeetingPins({
       now: november,
       loadRows: async () => [visit({ month: "2026-12-01", title: "Not yet", author: "Not yet" })],
     });
 
-    expect(pins).toEqual({ status: "ready", pins: [] });
+    expect(pins.status).toBe("ready");
+    if (pins.status === "ready") {
+      expect(pins.pins).toHaveLength(1);
+      expect(pins.pins[0]?.visits[0]).toMatchObject({ title: "Not yet", month: "2026-12-01" });
+    }
   });
 
   test("the query joins confirmed places only and does not select the typed name or call a geocoder", () => {
@@ -176,7 +180,7 @@ describe("load meeting pins", () => {
 
     expect(source).toContain("innerJoin");
     expect(source).toContain("isNotNull(visits.placeId)");
-    expect(source).toContain("lte(picks.month, currentMonth)");
+    expect(source).toContain("reachThrough");
     expect(source).not.toMatch(/enteredName|entered_name/);
     expect(source).not.toMatch(/geoapify|GEOAPIFY|nominatim|googleapis/i);
     expect(source).not.toMatch(/openfreemap/i);

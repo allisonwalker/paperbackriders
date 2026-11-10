@@ -146,18 +146,16 @@ describe("reading totals", () => {
     expect(totals.genres).toEqual([{ label: "Sci-Fi", count: 2 }]);
   });
 
-  test("uses the club calendar and still drops a future month the query returned", async () => {
-    const seen: string[] = [];
+  test("uses the club calendar and still drops a pick after the current one", async () => {
     const state = await loadReadingTotals({
       now: new Date("2026-11-01T06:30:00.000Z"),
       timeZone: CLUB_TIMEZONE,
-      loadRows: async (month) => {
-        seen.push(month);
-        return [book("2026-10-01", { pageCount: 40, genre: "Memoir" }), book("2026-11-01", { pageCount: 400, genre: "Memoir" })];
-      },
+      loadRows: async () => [
+        book("2026-10-01", { pageCount: 40, genre: "Memoir" }),
+        book("2026-11-01", { pageCount: 400, genre: "Memoir" }),
+      ],
     });
 
-    expect(seen).toEqual(["2026-10-01"]);
     expect(state).toEqual({
       status: "ready",
       bookCount: 1,

@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
-import { clubTimeZone } from "./club-date";
+import { clubCalendarDate, clubMonthStart, clubTimeZone } from "./club-date";
+import { selectCurrentPick, type MeetingSettlement } from "./current-pick";
 import { getDb } from "./db/client";
 import { meetings, picks } from "./db/schema";
+import { loadMeetingAnchor, rememberHappenedMeeting } from "./meeting-settlement";
 import { parseMeetingInput, type MeetingDraft, type MeetingErrors, type MeetingInput } from "./meeting-input";
 import { requireRecordKeeper, RecordKeeperRequiredError, type SessionEmail } from "./record-keeper";
 
@@ -19,8 +21,8 @@ export type MeetingPickRef = {
 export type StoredMeeting = {
   id: string;
   pickId: string;
-  startsAt: Date;
-  place: string;
+  startsAt: Date | null;
+  place: string | null;
   updatedAt: Date;
 };
 
@@ -37,7 +39,7 @@ export type MeetingWriteOptions = {
 };
 
 export type SaveMeetingResult =
-  | { status: "saved"; id: string; pickId: string; startsAt: Date; place: string }
+  | { status: "saved"; id: string; pickId: string; startsAt: Date | null; place: string | null }
   | { status: "invalid"; errors: MeetingErrors }
   | { status: "error" };
 
@@ -80,6 +82,7 @@ function defaultStore(): MeetingStore {
       return { id: row.id, kind: row.kind };
     },
     async save(draft) {
+      await rememberHappenedMeeting();
       const updatedAt = new Date();
       const rows = await getDb()
         .insert(meetings)
@@ -111,6 +114,61 @@ function defaultStore(): MeetingStore {
       };
     },
   };
+}
+
+export async function skipCurrentMeeting(options?: MeetingWriteOptions & { now?: Date }): Promise<
+  { status: "skipped" } | { status: "invalid" } | { status: "error" }
+> {
+  await requireRecordKeeper(options?.readSession, options?.allowlisted);
+  const now = options?.now ?? new Date();
+  const timeZone = options?.timeZone ?? clubTimeZone();
+  try {
+    await rememberHappenedMeeting(now, timeZone);
+    const [pickRows, meeting] = await Promise.all([
+      getDb().select({ id: picks.id, month: picks.month, meetingSettled: picks.meetingSettled }).from(picks),
+      loadMeetingAnchor(now, timeZone),
+    ]);
+    const roster = pickRows.map((row) => ({
+      id: row.id,
+      month: row.month,
+      meetingSettled: asSettlement(row.meetingSettled),
+    }));
+    const selection = selectCurrentPick(roster, {
+      today: clubCalendarDate(now, timeZone),
+      calendarMonth: clubMonthStart(now, timeZone),
+      meeting,
+    });
+    if (selection.status !== "current" || selection.pick.meetingSettled === "happened") {
+      return { status: "invalid" };
+    }
+
+    await getDb().update(picks).set({ meetingSettled: "skipped" }).where(eq(picks.id, selection.pick.id));
+    const next = roster
+      .filter((row) => row.month > selection.pick.month)
+      .sort((left, right) => (left.month < right.month ? -1 : 1))[0];
+    const updatedAt = new Date();
+    if (!next) {
+      await getDb().delete(meetings);
+      return { status: "skipped" };
+    }
+
+    await getDb()
+      .insert(meetings)
+      .values({ pickId: next.id, startsAt: null, place: null, updatedAt, singleton: true })
+      .onConflictDoUpdate({
+        target: meetings.singleton,
+        set: { pickId: next.id, startsAt: null, place: null, updatedAt },
+      });
+    return { status: "skipped" };
+  } catch (error) {
+    if (error instanceof RecordKeeperRequiredError) throw error;
+    logMeetingWriteFailure(error);
+    return { status: "error" };
+  }
+}
+
+function asSettlement(value: string | null): MeetingSettlement | null {
+  return value === "skipped" || value === "happened" ? value : null;
 }
 
 function postgresCode(error: unknown): string | null {

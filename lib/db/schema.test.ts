@@ -24,6 +24,7 @@ describe("pick table", () => {
       "genre",
       "lookupSource",
       "lookupKey",
+      "meetingSettled",
     ]);
     expect(columns).not.toContain("isCurrent");
     expect(columns).not.toContain("currentPick");
@@ -38,6 +39,7 @@ describe("pick table", () => {
 
     const month = checks.find((constraint) => constraint.name === "picks_month_is_first_day");
     const shape = checks.find((constraint) => constraint.name === "picks_book_or_prompt");
+    const settled = checks.find((constraint) => constraint.name === "picks_meeting_settled");
 
     expect(month?.sql).toContain("extract(day from");
     expect(shape?.sql).toContain("kind");
@@ -56,6 +58,9 @@ describe("pick table", () => {
     expect(shape?.sql).toContain("'open_library'");
     expect(shape?.sql).toContain("prompt_text\" is null");
     expect(shape?.sql).toContain("title\" is null");
+    expect(settled?.sql).toContain("meeting_settled");
+    expect(settled?.sql).toContain("'skipped'");
+    expect(settled?.sql).toContain("'happened'");
   });
 
   test("the page stays on the Node.js runtime and does not check a session", () => {
