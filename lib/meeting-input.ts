@@ -23,12 +23,13 @@ export type MeetingInput = {
   time?: unknown;
   place?: unknown;
   pickId?: unknown;
+  unscheduled?: unknown;
 };
 
 export type MeetingDraft = {
   pickId: string;
-  startsAt: Date;
-  place: string;
+  startsAt: Date | null;
+  place: string | null;
 };
 
 export type MeetingParse =
@@ -44,6 +45,7 @@ export function meetingInputFromForm(formData: FormData): MeetingInput {
     time: field(formData, "time"),
     place: field(formData, "place"),
     pickId: field(formData, "pickId"),
+    unscheduled: field(formData, "unscheduled"),
   };
 }
 
@@ -118,12 +120,18 @@ export function parseMeetingInput(input: MeetingInput, timeZone: string): Meetin
   const time = typeof input.time === "string" ? normalizeClock(input.time) : null;
   const place = typeof input.place === "string" ? input.place.trim() : "";
   const pickId = typeof input.pickId === "string" ? input.pickId.trim() : "";
+  const unscheduled = input.unscheduled === "1" || input.unscheduled === "on";
+
+  if (!pickId) errors.pick = "Choose a pick.";
+  if (unscheduled) {
+    if (errors.pick) return { ok: false, errors };
+    return { ok: true, draft: { pickId, startsAt: null, place: null } };
+  }
 
   if (!date || !monthOfClubDate(date)) errors.date = "Choose a date.";
   if (!time) errors.time = "Choose a time.";
   if (!place) errors.place = "Write a place.";
   else if (place.length > PLACE_LIMIT) errors.place = "The place is too long.";
-  if (!pickId) errors.pick = "Choose a pick.";
 
   if (errors.date || errors.time || errors.place || errors.pick) {
     return { ok: false, errors };

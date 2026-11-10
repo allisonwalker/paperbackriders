@@ -96,7 +96,8 @@ describe("save the next meeting", () => {
 
     expect(source).toContain("requireRecordKeeper(");
     expect(source).toContain("onConflictDoUpdate");
-    expect(source).not.toMatch(/\.delete\(|geocode|maps\.|fetch\s*\(/);
+    expect(source).not.toMatch(/geocode|maps\.|fetch\s*\(/);
+    expect(source).toContain(".delete(meetings)");
     expect(action).toContain("saveMeeting");
     expect(action).toContain("RecordKeeperRequiredError");
     expect(action).not.toContain("getDb(");
@@ -115,7 +116,7 @@ describe("save the next meeting", () => {
         pickId: "prompt-1",
         place: "at a member's home",
       });
-      if (result.status !== "saved") return;
+      if (result.status !== "saved" || !result.startsAt) return;
       expect(result.startsAt.toISOString()).toBe("2026-11-19T03:00:00.000Z");
 
       const view = presentMeeting(

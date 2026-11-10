@@ -29,6 +29,13 @@
       "when": 1794259004199,
       "tag": "0003_places_visits",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794332542699,
+      "tag": "0004_square_prodigy",
+      "breakpoints": true
     }
   ]
 }

@@ -2,20 +2,23 @@ import { eq } from "drizzle-orm";
 import { calendarDaysUntil, clubCalendarDate, clubTimeZone } from "./club-date";
 import { getDb } from "./db/client";
 import { meetings, picks } from "./db/schema";
+import { DATE_AND_PLACE_TO_COME } from "./meeting-copy";
 import { clubDateAndTime } from "./meeting-input";
+import { rememberHappenedMeeting } from "./meeting-settlement";
 import { mapPickRow, type PickRecord } from "./picks";
 
 export const NO_UPCOMING_MEETING = "No upcoming meeting is set.";
 
 export type MeetingSource = {
   id: string;
-  startsAt: Date;
-  place: string;
+  startsAt: Date | null;
+  place: string | null;
   pick: PickRecord;
 };
 
 export type MeetingView =
   | { status: "none" }
+  | { status: "unscheduled"; lead: string; discussing: string }
   | {
       status: "upcoming";
       daysRemaining: number;
@@ -31,6 +34,7 @@ export type MeetingResult = MeetingView | { status: "error" };
 export type EditorMeetingState =
   | { status: "empty" }
   | { status: "error" }
+  | { status: "unscheduled"; pickId: string }
   | { status: "set"; date: string; time: string; place: string; pickId: string };
 
 export function meetingLead(daysRemaining: number): string {
@@ -68,6 +72,13 @@ export function presentMeeting(source: MeetingSource | null, now: Date, timeZone
     return { status: "none" };
   }
 
+  if (!source.startsAt) {
+    if (source.place) {
+      throw new Error(`Meeting ${source.id} is missing its date`);
+    }
+    return { status: "unscheduled", lead: DATE_AND_PLACE_TO_COME, discussing: discussPick(source.pick) };
+  }
+
   const today = clubCalendarDate(now, timeZone);
   const meetingDay = clubCalendarDate(source.startsAt, timeZone);
   const daysRemaining = calendarDaysUntil(meetingDay, today);
@@ -75,7 +86,7 @@ export function presentMeeting(source: MeetingSource | null, now: Date, timeZone
     return { status: "none" };
   }
 
-  const place = source.place.trim();
+  const place = source.place?.trim() ?? "";
   if (!place) {
     throw new Error(`Meeting ${source.id} is missing its place`);
   }
@@ -107,6 +118,7 @@ export async function loadNextMeeting(options?: {
   try {
     const now = options?.now ?? new Date();
     const timeZone = options?.timeZone ?? clubTimeZone();
+    if (!options?.loadRow) await rememberHappenedMeeting(now, timeZone);
     const source = await (options?.loadRow ?? loadMeetingRow)();
     return presentMeeting(source, now, timeZone);
   } catch (error) {
@@ -121,11 +133,16 @@ export async function loadEditorMeeting(options?: {
 }): Promise<EditorMeetingState> {
   try {
     const timeZone = options?.timeZone ?? clubTimeZone();
+    if (!options?.loadRow) await rememberHappenedMeeting(new Date(), timeZone);
     const source = await (options?.loadRow ?? loadMeetingRow)();
     if (!source) return { status: "empty" };
+    if (!source.startsAt) {
+      if (source.place) throw new Error(`Meeting ${source.id} is missing its date`);
+      return { status: "unscheduled", pickId: source.pick.id };
+    }
 
     const when = clubDateAndTime(source.startsAt, timeZone);
-    const place = source.place.trim();
+    const place = source.place?.trim() ?? "";
     if (!place) throw new Error(`Meeting ${source.id} is missing its place`);
 
     return { status: "set", date: when.date, time: when.time, place, pickId: source.pick.id };

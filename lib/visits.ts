@@ -1,8 +1,10 @@
-import { and, eq, isNotNull, lte } from "drizzle-orm";
-import { clubMonthStart, clubTimeZone, formatClubMonth, isMonthStart } from "./club-date";
+import { eq, isNotNull } from "drizzle-orm";
+import { clubCalendarDate, clubMonthStart, clubTimeZone, formatClubMonth, isMonthStart } from "./club-date";
 import { displayCoverUrl } from "./cover";
+import { reachThrough, type CurrentMeeting, type MeetingSettlement } from "./current-pick";
 import { getDb } from "./db/client";
 import { picks, places, visits } from "./db/schema";
+import { loadMeetingAnchor, rememberHappenedMeeting } from "./meeting-settlement";
 
 export type VisitKind = "book" | "prompt";
 
@@ -18,6 +20,8 @@ export type VisitCandidate = {
   author: string | null;
   promptText: string | null;
   coverUrl: string | null;
+  id?: string;
+  meetingSettled?: MeetingSettlement | null;
 };
 
 export type BookPinVisit = {
@@ -57,8 +61,8 @@ type PlaceGroup = {
   months: Set<string>;
 };
 
-export function meetingPins(rows: readonly VisitCandidate[], currentMonth: string): MeetingPin[] {
-  if (!isMonthStart(currentMonth)) {
+export function meetingPins(rows: readonly VisitCandidate[], currentMonth: string | null): MeetingPin[] {
+  if (currentMonth !== null && !isMonthStart(currentMonth)) {
     throw new Error("The current club month must be the first calendar day");
   }
 
@@ -68,7 +72,7 @@ export function meetingPins(rows: readonly VisitCandidate[], currentMonth: strin
     if (!isMonthStart(row.month)) {
       throw new Error("A pick month must be the first calendar day");
     }
-    if (row.month > currentMonth || row.placeId == null) {
+    if ((currentMonth !== null && row.month > currentMonth) || row.placeId == null) {
       continue;
     }
 
@@ -97,21 +101,39 @@ export function meetingPins(rows: readonly VisitCandidate[], currentMonth: strin
 export async function loadMeetingPins(options?: {
   now?: Date;
   timeZone?: string;
-  loadRows?: (currentMonth: string) => Promise<VisitCandidate[]>;
+  loadRows?: () => Promise<VisitCandidate[]>;
+  loadMeeting?: () => Promise<CurrentMeeting | null>;
 }): Promise<PinsState> {
   try {
     const now = options?.now ?? new Date();
     const timeZone = options?.timeZone ?? clubTimeZone();
-    const currentMonth = clubMonthStart(now, timeZone);
-    const rows = await (options?.loadRows ?? loadConfirmedVisitRows)(currentMonth);
-    return { status: "ready", pins: meetingPins(rows, currentMonth) };
+    const rows = await (options?.loadRows ?? (() => loadConfirmedVisitRows(now, timeZone)))();
+    const meeting = options?.loadMeeting
+      ? await options.loadMeeting()
+      : options?.loadRows
+        ? null
+        : await loadMeetingAnchor(now, timeZone);
+    const through = reachThrough(
+      rows.map((row, index) => ({
+        id: row.id ?? row.month ?? String(index),
+        month: row.month,
+        meetingSettled: row.meetingSettled,
+      })),
+      {
+        today: clubCalendarDate(now, timeZone),
+        calendarMonth: clubMonthStart(now, timeZone),
+        meeting,
+      },
+    );
+    return { status: "ready", pins: meetingPins(rows, through) };
   } catch (error) {
     logPinFailure(error);
     return { status: "error" };
   }
 }
 
-export async function loadConfirmedVisitRows(currentMonth: string): Promise<VisitCandidate[]> {
+export async function loadConfirmedVisitRows(now = new Date(), timeZone = clubTimeZone()): Promise<VisitCandidate[]> {
+  await rememberHappenedMeeting(now, timeZone);
   const rows = await getDb()
     .select({
       placeId: places.id,
@@ -124,11 +146,13 @@ export async function loadConfirmedVisitRows(currentMonth: string): Promise<Visi
       author: picks.author,
       promptText: picks.promptText,
       coverUrl: picks.coverUrl,
+      id: picks.id,
+      meetingSettled: picks.meetingSettled,
     })
     .from(visits)
     .innerJoin(places, eq(visits.placeId, places.id))
     .innerJoin(picks, eq(visits.pickId, picks.id))
-    .where(and(isNotNull(visits.placeId), lte(picks.month, currentMonth)));
+    .where(isNotNull(visits.placeId));
 
   return rows.map((row) => ({
     placeId: row.placeId,
@@ -141,6 +165,8 @@ export async function loadConfirmedVisitRows(currentMonth: string): Promise<Visi
     author: row.author,
     promptText: row.promptText,
     coverUrl: row.coverUrl,
+    id: row.id,
+    meetingSettled: row.meetingSettled === "skipped" || row.meetingSettled === "happened" ? row.meetingSettled : null,
   }));
 }
 

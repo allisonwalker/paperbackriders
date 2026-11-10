@@ -50,23 +50,18 @@ describe("featured pick", () => {
     expect(selectFeaturedPick([], "2026-11-01")).toBeNull();
   });
 
-  test("uses the club calendar when loading", async () => {
-    const seen: string[] = [];
+  test("moves to the next saved pick once the earlier month is released", async () => {
     const state = await loadFeaturedPick({
       now: november,
       timeZone: CLUB_TIMEZONE,
-      loadRows: async (currentMonth) => {
-        seen.push(currentMonth);
-        return [pick("2026-10-01"), pick("2026-12-01")];
-      },
+      loadRows: async () => [pick("2026-10-01"), pick("2026-12-01")],
     });
 
-    expect(seen).toEqual(["2026-11-01"]);
     expect(state).toMatchObject({
       status: "ready",
-      month: "2026-10-01",
-      pickLabel: "November\u2019s pick",
-      hero: { kind: "book", title: "Title 2026-10-01", monthLabel: "October 2026" },
+      month: "2026-12-01",
+      pickLabel: "Current pick",
+      hero: { kind: "book", title: "Title 2026-12-01", monthLabel: "December 2026" },
     });
   });
 
