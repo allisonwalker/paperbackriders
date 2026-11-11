@@ -16,38 +16,42 @@ export function AnalyticsPage({ reading, pins }: { reading: ReadingState; pins: 
         ) : (
           <>
             <section aria-label="Reading totals">
-              <p className="total">
-                <span className="total-value">{formatCount(reading.bookCount)}</span>
-                <span className="total-label">{reading.bookCount === 1 ? "book" : "books"}</span>
-              </p>
-              <p className="total">
-                <span className="total-value">{formatCount(reading.pageTotal)}</span>
-                <span className="total-label">{reading.pageTotal === 1 ? "page" : "pages"}</span>
-              </p>
-              <h2 className="section-label">Genres</h2>
-              {reading.genres.length === 0 ? (
-                <p>No genres.</p>
-              ) : (
-                <ul className="genre-list">
-                  {reading.genres.map((genre) => (
-                    <li key={genre.label} aria-label={accessibleGenre(genre, reading.bookCount)}>
-                      <span className="genre-name">{genre.label}</span>
-                      <span className="genre-bar">
-                        {genre.books.map((book, index) => {
-                          const cover = historyCoverUrl(book.coverUrl);
-                          return (
-                            <span key={`${book.month}-${book.title}-${index}`} className="genre-tile">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              {cover ? <img src={cover} alt="" /> : null}
-                            </span>
-                          );
-                        })}
-                      </span>
-                      <span className="genre-count">{genreCountLabel(genre.count, reading.bookCount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="totals-pair">
+                <p className="total reading-frame">
+                  <span className="total-value">{formatCount(reading.bookCount)}</span>
+                  <span className="total-label">{reading.bookCount === 1 ? "book" : "books"}</span>
+                </p>
+                <p className="total reading-frame">
+                  <span className="total-value">{formatCount(reading.pageTotal)}</span>
+                  <span className="total-label">{reading.pageTotal === 1 ? "page" : "pages"}</span>
+                </p>
+              </div>
+              <div className="genre-panel reading-frame">
+                <h2 className="section-label">Genres</h2>
+                {reading.genres.length === 0 ? (
+                  <p>No genres.</p>
+                ) : (
+                  <ul className="genre-list">
+                    {reading.genres.map((genre) => (
+                      <li key={genre.label} aria-label={accessibleGenre(genre, reading.bookCount)}>
+                        <span className="genre-name">{genre.label}</span>
+                        <span className="genre-bar">
+                          {genre.books.map((book, index) => {
+                            const cover = historyCoverUrl(book.coverUrl);
+                            return (
+                              <span key={`${book.month}-${book.title}-${index}`} className="genre-tile">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                {cover ? <img src={cover} alt="" /> : null}
+                              </span>
+                            );
+                          })}
+                        </span>
+                        <span className="genre-count">{genreCountLabel(genre.count, reading.bookCount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </section>
             <MeetingMap pins={pins} />
           </>

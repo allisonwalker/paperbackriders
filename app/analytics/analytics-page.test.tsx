@@ -94,6 +94,17 @@ describe("book analytics page", () => {
     expect(css).toMatch(/\.genre-tile\s*\{[^}]*width:\s*2\.25rem;\s*height:\s*3\.375rem;/s);
     expect(html).toContain("No places are confirmed yet.");
     expect(html).not.toContain("<canvas");
+    expect(frames(html)).toEqual(["books", "pages", "genres"]);
+    expect(css).toMatch(/\.reading-frame\s*\{[^}]*border:\s*1px solid rgba\(26,\s*18,\s*12,\s*0\.22\);/s);
+    expect(css).toMatch(/\.reading-frame\s*\{[^}]*padding:/s);
+    expect(css).not.toMatch(/\.reading-frame\s*\{[^}]*3px/s);
+    expect(css).not.toMatch(/\.reading-frame\s*\{[^}]*--shirt/s);
+    expect(css).toMatch(/@media \(min-width: 721px\)\s*\{[^}]*\.totals-pair\s*\{[^}]*flex-direction:\s*row;/s);
+    expect(css).toMatch(/\.total\s*\{[^}]*min-width:\s*12rem;/s);
+    expect(css).toMatch(/\.totals-pair\s*\{[^}]*flex-direction:\s*column;[^}]*width:\s*100%;/s);
+    expect(css).not.toMatch(/\.total\s*\{[^}]*max-width:\s*16rem;/s);
+    expect(css).toMatch(/\.genre-panel\s*\{[^}]*width:\s*100%;/s);
+    expect(css).toMatch(/\.meeting-map\s*\{[^}]*border:\s*3px solid var\(--ink\);/s);
   });
 
   test("shows zero books, zero pages, and no genres", () => {
@@ -104,6 +115,9 @@ describe("book analytics page", () => {
     expect(html).toContain("pages");
     expect(html).toContain("No genres.");
     expect(html).not.toContain("genre-list");
+    expect(frames(html)).toEqual(["books", "pages", "genres"]);
+    const genres = html.slice(html.indexOf('class="genre-panel'), html.indexOf("Meeting places"));
+    expect(genres).toContain("No genres.");
   });
 
   test("rounds a partial percentage of every book, including books with no genre", () => {
@@ -137,6 +151,7 @@ describe("book analytics page", () => {
     expect(html).toContain("Paperback");
     expect(html).toContain("Riders");
     expect(html).not.toContain("total-value");
+    expect(html).not.toContain("reading-frame");
     expect(html).not.toContain("books");
     expect(html).not.toContain("pages");
     expect(html).not.toContain("No genres.");
@@ -156,5 +171,16 @@ describe("book analytics page", () => {
     expect(html).toContain(">80<");
     expect(html).toContain("The map could not load.");
     expect(html).not.toContain("No places are confirmed yet.");
+    expect(frames(html)).toEqual(["books", "pages", "genres"]);
   });
 });
+
+function frames(html: string): string[] {
+  const totals = html.slice(html.indexOf("Reading totals"), html.indexOf("Meeting places"));
+  return [...totals.matchAll(/class="(total|genre-panel) reading-frame"/g)].map((match, index) => {
+    if (match[1] === "genre-panel") {
+      return "genres";
+    }
+    return index === 0 ? "books" : "pages";
+  });
+}
