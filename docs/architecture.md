@@ -12,7 +12,7 @@ Allison edits those records on two tabs of the record-keeping page. The page ope
 
 Catalog is the page a member gets by opening the site. Its address is `/`. Analytics is the other public page, at `/analytics`. Both pages show the same navigation pane by the header. The pane has two links, named Catalog and Analytics. It sits outside the masthead lockup, so on the catalog the club name stays the largest type and still reads Paperback Riders. The record-keeping page does not show the pane.
 
-Analytics is where a member sees how many specific books the club has read, how many pages those books add up to, and the top genres, plus one pin for each place the club has met. Allison is the only person who records a venue name or chooses which real place that name means. Anyone with the link can view the page, the same way they can view the catalog.
+Analytics is where a member sees how many specific books the club has read, how many pages those books add up to, and every genre as a row of that group's covers, plus one pin for each place the club has met. Allison is the only person who records a venue name or chooses which real place that name means. Anyone with the link can view the page, the same way they can view the catalog.
 
 Member-only email access, recommendations, member-created events, sorting, and filtering stay later. This design does not build seams for them. Analytics is three counts and a map of places. It is not charts, pace, or author rankings. The pane is two links. It is not a menu, a third page, or a way into the editor.
 
@@ -30,7 +30,7 @@ Member-only email access, recommendations, member-created events, sorting, and f
 | Place lookup | Geoapify Geocoding API | Returns several matches, and the free plan allows production use and storing the result. The key stays on the server. Called only while Allison is choosing a place |
 | Map | MapLibre GL JS and OpenFreeMap tiles | The browser draws pins from coordinates we already stored. The style URL needs no key and does not bill per view |
 | Hosting | Vercel | Fits Next.js, preview URLs, and a Neon integration. Traffic for twelve readers fits a free tier |
-| Tests | Vitest for the pure rules | Month selection, the day count, book-versus-prompt validation, the reading totals, the genre cutoff, and "a pin exists only after she selects a match" |
+| Tests | Vitest for the pure rules | Month selection, the day count, book-versus-prompt validation, the reading totals, the genre groups, and "a pin exists only after she selects a match" |
 
 Still out on purpose: Redis, a cache CDN rule, object storage, PostGIS, a scraper, a queue, a hosted login product, and Google Maps.
 
@@ -83,7 +83,7 @@ lib/
   db/                       Drizzle schema and client
   picks.ts                  featured pick, history, save, delete
   meeting.ts                the single next meeting
-  reading.ts                book count, page total, genre cutoff
+  reading.ts                book count, page total, genre groups
   visits.ts                 venue names, confirmed places, pins
   books/lookup.ts           Open Library adapter behind one function
   places/lookup.ts          Geoapify adapter behind one function

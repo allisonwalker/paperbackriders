@@ -1,4 +1,5 @@
-import type { ReadingState } from "@/lib/reading";
+import { historyCoverUrl } from "@/lib/cover";
+import type { GenreTotal, ReadingState } from "@/lib/reading";
 import type { PinsState } from "@/lib/visits";
 import { PublicMasthead } from "../public-masthead";
 import { PublicNav } from "../public-nav";
@@ -29,11 +30,20 @@ export function AnalyticsPage({ reading, pins }: { reading: ReadingState; pins: 
               ) : (
                 <ul className="genre-list">
                   {reading.genres.map((genre) => (
-                    <li key={genre.label}>
+                    <li key={genre.label} aria-label={accessibleGenre(genre, reading.bookCount)}>
                       <span className="genre-name">{genre.label}</span>
-                      <span className="genre-count">
-                        {formatCount(genre.count)} {genre.count === 1 ? "book" : "books"}
+                      <span className="genre-bar">
+                        {genre.books.map((book, index) => {
+                          const cover = historyCoverUrl(book.coverUrl);
+                          return (
+                            <span key={`${book.month}-${book.title}-${index}`} className="genre-tile">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              {cover ? <img src={cover} alt="" /> : null}
+                            </span>
+                          );
+                        })}
                       </span>
+                      <span className="genre-count">{genreCountLabel(genre.count, reading.bookCount)}</span>
                     </li>
                   ))}
                 </ul>
@@ -49,4 +59,24 @@ export function AnalyticsPage({ reading, pins }: { reading: ReadingState; pins: 
 
 function formatCount(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
+}
+
+function genrePercent(count: number, bookCount: number): number {
+  if (bookCount <= 0) {
+    return 0;
+  }
+  return Math.round((count / bookCount) * 100);
+}
+
+function genreCountLabel(count: number, bookCount: number): string {
+  const noun = count === 1 ? "book" : "books";
+  return `${formatCount(count)} ${noun} · ${genrePercent(count, bookCount)}%`;
+}
+
+function accessibleGenre(genre: GenreTotal, bookCount: number): string {
+  const noun = genre.count === 1 ? "book" : "books";
+  const titles = genre.books.map((book) => book.title.trim()).filter((title) => title.length > 0);
+  return [genre.label, `${formatCount(genre.count)} ${noun}`, `${genrePercent(genre.count, bookCount)}%`, ...titles].join(
+    ", ",
+  );
 }

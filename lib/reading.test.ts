@@ -16,6 +16,10 @@ function prompt(month: string): ReadingPick {
   return { month, kind: "prompt", pageCount: null, genre: null };
 }
 
+function labelsOf(genres: { label: string; count: number }[]) {
+  return genres.map(({ label, count }) => ({ label, count }));
+}
+
 function monthAt(index: number): string {
   const year = 2025 + Math.floor(index / 12);
   const month = String((index % 12) + 1).padStart(2, "0");
@@ -38,7 +42,7 @@ describe("reading totals", () => {
 
     expect(totals.bookCount).toBe(2);
     expect(totals.pageTotal).toBe(250);
-    expect(totals.genres).toEqual([{ label: "Mystery", count: 2 }]);
+    expect(labelsOf(totals.genres)).toEqual([{ label: "Mystery", count: 2 }]);
   });
 
   test("leaves a future month out of every total", () => {
@@ -62,7 +66,7 @@ describe("reading totals", () => {
 
     expect(totals.bookCount).toBe(2);
     expect(totals.pageTotal).toBe(120);
-    expect(totals.genres).toEqual([{ label: "History", count: 1 }]);
+    expect(labelsOf(totals.genres)).toEqual([{ label: "History", count: 1 }]);
   });
 
   test("counts a second book once, and a prompt or a later month still adds nothing", () => {
@@ -90,7 +94,7 @@ describe("reading totals", () => {
 
     expect(totals.bookCount).toBe(4);
     expect(totals.pageTotal).toBe(150);
-    expect(totals.genres).toEqual([
+    expect(labelsOf(totals.genres)).toEqual([
       { label: "Fantasy", count: 1 },
       { label: "History", count: 1 },
       { label: "Mystery", count: 1 },
@@ -108,7 +112,7 @@ describe("reading totals", () => {
       currentMonth,
     );
 
-    expect(totals.genres).toEqual([{ label: "Fantasy", count: 4 }]);
+    expect(labelsOf(totals.genres)).toEqual([{ label: "Fantasy", count: 4 }]);
   });
 
   test("leaves a blank genre off the list without dropping the book", () => {
@@ -136,14 +140,14 @@ describe("reading totals", () => {
       currentMonth,
     );
 
-    expect(totals.genres).toEqual([
+    expect(labelsOf(totals.genres)).toEqual([
       { label: "Poetry", count: 2 },
       { label: "Essays", count: 1 },
       { label: "History", count: 1 },
     ]);
   });
 
-  test("keeps a tie at fifth place, so the list can run past five", () => {
+  test("shows every group, including Essays past a fifth-place tie", () => {
     const genres = [
       ...Array<string>(5).fill("Mystery"),
       ...Array<string>(4).fill("Fantasy"),
@@ -159,13 +163,14 @@ describe("reading totals", () => {
 
     expect(totals.bookCount).toBe(19);
     expect(totals.pageTotal).toBe(190);
-    expect(totals.genres).toEqual([
+    expect(labelsOf(totals.genres)).toEqual([
       { label: "Mystery", count: 5 },
       { label: "Fantasy", count: 4 },
       { label: "History", count: 3 },
       { label: "Poetry", count: 2 },
       { label: "Romance", count: 2 },
       { label: "Science", count: 2 },
+      { label: "Essays", count: 1 },
     ]);
   });
 
@@ -175,7 +180,110 @@ describe("reading totals", () => {
       currentMonth,
     );
 
-    expect(totals.genres).toEqual([{ label: "Sci-Fi", count: 2 }]);
+    expect(labelsOf(totals.genres)).toEqual([{ label: "Sci-Fi", count: 2 }]);
+  });
+
+  test("drops a parenthetical and still tells Fantasy from Fantasy romance", () => {
+    const totals = readingTotals(
+      [
+        book("2026-08-01", { genre: "Historical fiction" }),
+        book("2026-09-01", { genre: "historical fiction (mythological retelling)" }),
+        book("2026-10-01", { genre: "Nonfiction (travel / memoir)" }),
+        book("2026-11-01", { genre: "Nonfiction (self-help / relationships)" }),
+        book("2026-07-01", { genre: "Fantasy" }),
+        book("2026-06-01", { genre: "Fantasy romance" }),
+        book("2026-05-01", { genre: "Fantasy  romance" }),
+      ],
+      currentMonth,
+    );
+
+    expect(labelsOf(totals.genres)).toEqual([
+      { label: "Fantasy romance", count: 2 },
+      { label: "Historical fiction", count: 2 },
+      { label: "Nonfiction", count: 2 },
+      { label: "Fantasy", count: 1 },
+    ]);
+  });
+
+  test("counts Gothic horror as Horror and does not fold Sci-Fi into Science fiction", () => {
+    const totals = readingTotals(
+      [
+        book("2026-09-01", { title: "Mexican Gothic", genre: "Gothic horror" }),
+        book("2026-10-01", { title: "Frankenstein", genre: "Horror" }),
+        book("2026-11-01", { title: "Dune", genre: "Sci-Fi" }),
+        book("2026-08-01", { title: "Kindred", genre: "Science fiction" }),
+      ],
+      currentMonth,
+    );
+
+    expect(labelsOf(totals.genres)).toEqual([
+      { label: "Horror", count: 2 },
+      { label: "Sci-Fi", count: 1 },
+      { label: "Science fiction", count: 1 },
+    ]);
+  });
+
+  test("uses the chart genre for a title that starts with Stiff: without rewriting the pick", () => {
+    const stiff = book("2026-11-01", {
+      title: "Stiff: The Curious Lives of Human Cadavers",
+      genre: "Science",
+      coverUrl: "https://covers.openlibrary.org/b/id/55-L.jpg",
+    });
+    const totals = readingTotals(
+      [
+        stiff,
+        book("2026-10-01", {
+          title: "The Husbands",
+          genre: "Fantasy",
+          alsoRead: {
+            title: "Red Winter",
+            genre: "Horror",
+            pageCount: 20,
+            coverUrl: "https://example.com/red-winter.jpg",
+          },
+        }),
+        prompt("2026-09-01"),
+      ],
+      currentMonth,
+    );
+
+    expect(stiff.genre).toBe("Science");
+    expect(totals.bookCount).toBe(3);
+    expect(labelsOf(totals.genres)).toEqual([
+      { label: "Fantasy", count: 1 },
+      { label: "Nonfiction", count: 1 },
+      { label: "Romantic comedy", count: 1 },
+    ]);
+    expect(totals.genres.map((genre) => genre.books)).toEqual([
+      [{ title: "Red Winter", month: "2026-10-01", coverUrl: "https://example.com/red-winter.jpg" }],
+      [
+        {
+          title: "Stiff: The Curious Lives of Human Cadavers",
+          month: "2026-11-01",
+          coverUrl: "https://covers.openlibrary.org/b/id/55-L.jpg",
+        },
+      ],
+      [{ title: "The Husbands", month: "2026-10-01", coverUrl: null }],
+    ]);
+  });
+
+  test("orders tiles newest month first, then title", () => {
+    const totals = readingTotals(
+      [
+        book("2026-08-01", { title: "Later title", genre: "Mystery" }),
+        book("2026-11-01", { title: "Zebra", genre: "Mystery" }),
+        book("2026-11-01", { title: "Apple", genre: "Mystery" }),
+        book("2026-10-01", { title: "Middle", genre: "Mystery" }),
+      ],
+      currentMonth,
+    );
+
+    expect(totals.genres[0]?.books.map((entry) => entry.title)).toEqual([
+      "Apple",
+      "Zebra",
+      "Middle",
+      "Later title",
+    ]);
   });
 
   test("uses the club calendar and still drops a pick after the current one", async () => {
@@ -192,7 +300,13 @@ describe("reading totals", () => {
       status: "ready",
       bookCount: 1,
       pageTotal: 40,
-      genres: [{ label: "Memoir", count: 1 }],
+      genres: [
+        {
+          label: "Memoir",
+          count: 1,
+          books: [{ title: "", month: "2026-10-01", coverUrl: null }],
+        },
+      ],
     });
   });
 

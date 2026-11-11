@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Analytics · Paperback Riders",
   description:
-    "How many books Paperback Riders has read, how many pages those books add up to, the top genres, and where the club has met.",
+    "How many books Paperback Riders has read, how many pages those books add up to, the genres those books belong to, and where the club has met.",
 };
 
 export default async function Page() {

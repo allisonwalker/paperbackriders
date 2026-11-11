@@ -28,6 +28,7 @@ describe("analytics route", () => {
     expect(source).not.toMatch(/maplibre|geoapify|openlibrary|openfreemap/i);
     expect(source).toContain("loadMeetingPins");
     expect(source).toContain("Analytics · Paperback Riders");
+    expect(source).not.toContain("top genres");
     expect(source).not.toContain("Book analytics");
   });
 
@@ -36,7 +37,7 @@ describe("analytics route", () => {
       status: "ready",
       bookCount: 2,
       pageTotal: 500,
-      genres: [{ label: "Fantasy", count: 2 }],
+      genres: [{ label: "Fantasy", count: 2, books: [] }],
     });
     vi.mocked(loadMeetingPins).mockResolvedValue({ status: "ready", pins: [] });
 
