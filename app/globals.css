@@ -112,6 +112,16 @@ h2 {
   text-wrap: balance;
 }
 
+.unselected-pick {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 560;
+  font-size: clamp(1.35rem, 3.2vw, 2rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
 .byline {
   margin: 0 0 0.7rem;
   font-family: var(--font-fraunces), Georgia, serif;
@@ -130,7 +140,8 @@ h2 {
 }
 
 .spread + .dateline,
-h2 + .dateline {
+h2 + .dateline,
+.unselected-pick + .dateline {
   padding-top: 1rem;
   border-top: 1px solid var(--ink);
 }

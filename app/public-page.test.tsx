@@ -78,6 +78,7 @@ describe("public page", () => {
     expect(labelAt).toBeGreaterThan(-1);
     expect(labelAt).toBeLessThan(coverAt);
     expect(coverAt).toBeLessThan(titleAt);
+    expect(html).toContain("<h2>The Prestige</h2>");
     expect(html).toContain("Christopher Priest");
     expect(html).toContain("1995 · 404 pages · Fiction");
     expect(html).not.toContain("October 2026");
@@ -119,7 +120,7 @@ describe("public page", () => {
     });
 
     expect(html).toContain("November’s pick");
-    expect(html).toContain("Read a book from the year you were born.");
+    expect(html).toContain("<h2>Read a book from the year you were born.</h2>");
     expect(html).not.toContain("pages");
     expect(html.indexOf("<img")).toBe(html.lastIndexOf("<img"));
   });
@@ -148,8 +149,16 @@ describe("public page", () => {
     const html = render({ status: "unselected" });
 
     expect(html).toContain("The next book hasn&#x27;t been selected. Watch this space.");
-    expect(html).toContain("<h2");
+    expect(html).toContain('class="unselected-pick"');
+    expect(html).not.toContain("<h2");
     expect(html).not.toContain("could not load");
+
+    const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
+    const rule = css.slice(css.indexOf(".unselected-pick {"), css.indexOf(".unselected-pick {") + 400);
+    expect(rule).toContain("var(--font-fraunces)");
+    expect(rule).toContain("text-wrap: balance");
+    expect(rule).toMatch(/font-size:\s*clamp\(1\.35rem,\s*[\d.]+vw,\s*2rem\)/);
+    expect(css).toMatch(/h2\s*\{[^}]*font-size:\s*clamp\(2\.4rem,\s*5\.4vw,\s*4\.2rem\)/);
   });
 
   test("shows an unscheduled meeting without a date or a place", () => {

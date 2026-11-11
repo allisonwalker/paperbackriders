@@ -23,7 +23,7 @@ export function PublicPage({
         ) : (
           <section aria-label="Current pick">
             {featured.status === "ready" ? <Hero pickLabel={featured.pickLabel} hero={featured.hero} /> : null}
-            {featured.status === "unselected" ? <h2>{UNSELECTED_PICK}</h2> : null}
+            {featured.status === "unselected" ? <p className="unselected-pick">{UNSELECTED_PICK}</p> : null}
             <Dateline meeting={meeting} />
             <History entries={history.entries} />
           </section>
