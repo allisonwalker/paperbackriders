@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { clubCalendarDate, clubMonthStart, clubTimeZone } from "./club-date";
-import { selectCurrentPick, type MeetingSettlement } from "./current-pick";
+import { selectCurrentPick, type CurrentMeeting, type MeetingSettlement } from "./current-pick";
 import { getDb } from "./db/client";
 import { meetings, picks } from "./db/schema";
 import { loadMeetingAnchor, rememberHappenedMeeting } from "./meeting-settlement";
@@ -29,6 +29,21 @@ export type StoredMeeting = {
 export type MeetingStore = {
   findPick(id: string): Promise<MeetingPickRef | null>;
   save(draft: MeetingDraft): Promise<StoredMeeting>;
+};
+
+export type SkipPick = {
+  id: string;
+  month: string;
+  meetingSettled: MeetingSettlement | null;
+};
+
+export type SkipStore = {
+  rememberHappened(now: Date, timeZone: string): Promise<void>;
+  listPicks(): Promise<SkipPick[]>;
+  loadMeeting(now: Date, timeZone: string): Promise<CurrentMeeting | null>;
+  markSkipped(pickId: string): Promise<void>;
+  deleteMeeting(): Promise<void>;
+  moveMeeting(pickId: string, updatedAt: Date): Promise<void>;
 };
 
 export type MeetingWriteOptions = {
@@ -116,23 +131,16 @@ function defaultStore(): MeetingStore {
   };
 }
 
-export async function skipCurrentMeeting(options?: MeetingWriteOptions & { now?: Date }): Promise<
-  { status: "skipped" } | { status: "invalid" } | { status: "error" }
-> {
+export async function skipCurrentMeeting(
+  options?: Omit<MeetingWriteOptions, "store"> & { now?: Date; store?: SkipStore },
+): Promise<{ status: "skipped" } | { status: "invalid" } | { status: "error" }> {
   await requireRecordKeeper(options?.readSession, options?.allowlisted);
   const now = options?.now ?? new Date();
   const timeZone = options?.timeZone ?? clubTimeZone();
+  const store = options?.store ?? defaultSkipStore();
   try {
-    await rememberHappenedMeeting(now, timeZone);
-    const [pickRows, meeting] = await Promise.all([
-      getDb().select({ id: picks.id, month: picks.month, meetingSettled: picks.meetingSettled }).from(picks),
-      loadMeetingAnchor(now, timeZone),
-    ]);
-    const roster = pickRows.map((row) => ({
-      id: row.id,
-      month: row.month,
-      meetingSettled: asSettlement(row.meetingSettled),
-    }));
+    await store.rememberHappened(now, timeZone);
+    const [roster, meeting] = await Promise.all([store.listPicks(), store.loadMeeting(now, timeZone)]);
     const selection = selectCurrentPick(roster, {
       today: clubCalendarDate(now, timeZone),
       calendarMonth: clubMonthStart(now, timeZone),
@@ -142,29 +150,59 @@ export async function skipCurrentMeeting(options?: MeetingWriteOptions & { now?:
       return { status: "invalid" };
     }
 
-    await getDb().update(picks).set({ meetingSettled: "skipped" }).where(eq(picks.id, selection.pick.id));
+    await store.markSkipped(selection.pick.id);
     const next = roster
       .filter((row) => row.month > selection.pick.month)
       .sort((left, right) => (left.month < right.month ? -1 : 1))[0];
     const updatedAt = new Date();
     if (!next) {
-      await getDb().delete(meetings);
+      await store.deleteMeeting();
       return { status: "skipped" };
     }
 
-    await getDb()
-      .insert(meetings)
-      .values({ pickId: next.id, startsAt: null, place: null, updatedAt, singleton: true })
-      .onConflictDoUpdate({
-        target: meetings.singleton,
-        set: { pickId: next.id, startsAt: null, place: null, updatedAt },
-      });
+    await store.moveMeeting(next.id, updatedAt);
     return { status: "skipped" };
   } catch (error) {
     if (error instanceof RecordKeeperRequiredError) throw error;
     logMeetingWriteFailure(error);
     return { status: "error" };
   }
+}
+
+function defaultSkipStore(): SkipStore {
+  return {
+    async rememberHappened(now, timeZone) {
+      await rememberHappenedMeeting(now, timeZone);
+    },
+    async listPicks() {
+      const pickRows = await getDb()
+        .select({ id: picks.id, month: picks.month, meetingSettled: picks.meetingSettled })
+        .from(picks);
+      return pickRows.map((row) => ({
+        id: row.id,
+        month: row.month,
+        meetingSettled: asSettlement(row.meetingSettled),
+      }));
+    },
+    async loadMeeting(now, timeZone) {
+      return loadMeetingAnchor(now, timeZone);
+    },
+    async markSkipped(pickId) {
+      await getDb().update(picks).set({ meetingSettled: "skipped" }).where(eq(picks.id, pickId));
+    },
+    async deleteMeeting() {
+      await getDb().delete(meetings);
+    },
+    async moveMeeting(pickId, updatedAt) {
+      await getDb()
+        .insert(meetings)
+        .values({ pickId, startsAt: null, place: null, updatedAt, singleton: true })
+        .onConflictDoUpdate({
+          target: meetings.singleton,
+          set: { pickId, startsAt: null, place: null, updatedAt },
+        });
+    },
+  };
 }
 
 function asSettlement(value: string | null): MeetingSettlement | null {
