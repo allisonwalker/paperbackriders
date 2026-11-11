@@ -53,7 +53,7 @@ export async function searchBooksForRecordKeeper(
   return searchOpenLibrary(query.query, options?.fetch ?? fetch);
 }
 
-async function searchOpenLibrary(query: string, fetchImpl: typeof fetch): Promise<BookSearchState> {
+export async function searchOpenLibrary(query: string, fetchImpl: typeof fetch = fetch): Promise<BookSearchState> {
   const requested = buildSearchUrl(query);
   if (!requested || !isOpenLibrarySearchUrl(requested)) {
     logSearchFailure();
@@ -122,7 +122,7 @@ function matchesFromPayload(payload: unknown): BookSearchState {
   const matches: BookMatch[] = [];
   const seen = new Set<string>();
   for (const doc of payload.docs.slice(0, DOCS_SCAN_LIMIT)) {
-    const match = matchFromDoc(doc);
+    const match = bookMatchFromDoc(doc);
     if (!match || seen.has(match.lookupKey)) continue;
     seen.add(match.lookupKey);
     matches.push(match);
@@ -132,7 +132,7 @@ function matchesFromPayload(payload: unknown): BookSearchState {
   return matches.length === 0 ? { status: "empty" } : { status: "matches", matches };
 }
 
-function matchFromDoc(doc: unknown): BookMatch | null {
+export function bookMatchFromDoc(doc: unknown): BookMatch | null {
   if (doc == null || typeof doc !== "object") return null;
 
   const record = doc as Record<string, unknown>;
