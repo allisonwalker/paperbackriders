@@ -211,6 +211,36 @@ describe("reading history", () => {
     expect(entries[1]).not.toHaveProperty("publishedYear");
   });
 
+  test("keeps the stored genre, including a parenthetical the chart shortens", () => {
+    const entries = toHistory(
+      [
+        pick("2024-06-01", {
+          title: "Shadow of the Wind",
+          author: "Carlos Ruiz Zafon",
+          genre: "Gothic mystery / historical fiction",
+          pageCount: null,
+          publishedYear: 2001,
+        }),
+      ],
+      null,
+    );
+
+    expect(entries).toEqual([
+      {
+        kind: "book",
+        month: "2024-06-01",
+        monthLabel: "June 2024",
+        title: "Shadow of the Wind",
+        author: "Carlos Ruiz Zafon",
+        pageCount: null,
+        genre: "Gothic mystery / historical fiction",
+        coverUrl: "https://covers.openlibrary.org/b/id/1-M.jpg",
+        marked: false,
+        entryKey: "2024-06-01",
+      },
+    ]);
+  });
+
   test("is an empty list when the club has no picks", () => {
     expect(toHistory([], null)).toEqual([]);
   });

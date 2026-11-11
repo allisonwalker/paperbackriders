@@ -341,6 +341,65 @@ describe("public page", () => {
     expect(list).not.toContain("example.com");
   });
 
+  test("shows the stored genre and omits a missing page count or genre", () => {
+    const entries: HistoryEntry[] = [
+      {
+        kind: "book",
+        month: "2024-06-01",
+        monthLabel: "June 2024",
+        title: "Shadow of the Wind",
+        author: "Carlos Ruiz Zafon",
+        pageCount: null,
+        genre: "Gothic mystery / historical fiction",
+        coverUrl: "https://covers.openlibrary.org/b/id/77-M.jpg",
+        marked: false,
+        entryKey: "2024-06-01",
+      },
+      {
+        kind: "book",
+        month: "2024-05-01",
+        monthLabel: "May 2024",
+        title: "Untitled book",
+        author: "No Facts",
+        pageCount: null,
+        genre: null,
+        coverUrl: null,
+        marked: false,
+        entryKey: "2024-05-01",
+      },
+      {
+        kind: "prompt",
+        month: "2024-03-01",
+        monthLabel: "March 2024",
+        promptText: "A book with a green cover.",
+        marked: false,
+        entryKey: "2024-03-01",
+      },
+    ];
+    const html = render(book, none, { status: "ready", entries });
+    const list = html.slice(html.indexOf('aria-label="Reading history"'));
+    const shadowAt = list.indexOf("Shadow of the Wind");
+    const shadowRow = list.slice(list.lastIndexOf("<li", shadowAt), list.indexOf("</li>", shadowAt));
+    const emptyAt = list.indexOf("Untitled book");
+    const emptyRow = list.slice(list.lastIndexOf("<li", emptyAt), list.indexOf("</li>", emptyAt));
+    const promptAt = list.indexOf("A book with a green cover.");
+    const promptRow = list.slice(list.lastIndexOf("<li", promptAt), list.indexOf("</li>", promptAt));
+
+    expect(shadowRow).toContain('<img src="https://covers.openlibrary.org/b/id/77-M.jpg"');
+    expect(shadowRow).toContain("June 2024");
+    expect(shadowRow.indexOf("Shadow of the Wind")).toBeLessThan(shadowRow.indexOf("Carlos Ruiz Zafon"));
+    expect(shadowRow).toContain('<span class="author">Carlos Ruiz Zafon</span>');
+    expect(shadowRow).toContain("Gothic mystery / historical fiction");
+    expect(shadowRow).not.toContain("Historical fiction");
+    expect(shadowRow).not.toContain("pages");
+    expect(shadowRow).not.toContain("2001");
+    expect(emptyRow).not.toContain("pages");
+    expect(emptyRow).not.toContain("genre");
+    expect(promptRow).not.toContain("<img");
+    expect(promptRow).not.toContain("pages");
+    expect(promptRow).not.toContain("genre");
+  });
+
   test("shows the history region with no months when the club has no picks", () => {
     const html = render({ status: "empty" });
     const list = html.slice(html.indexOf('aria-label="Reading history"'));
