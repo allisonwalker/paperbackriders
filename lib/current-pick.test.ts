@@ -16,9 +16,16 @@ describe("current pick", () => {
     expect(selectCurrentPick([], november)).toEqual({ status: "empty" });
   });
 
-  test("holds the latest unreleased pick and lets a later one wait", () => {
+  test("keeps October current on November 10 when nothing is marked and no meeting is saved", () => {
     const rows = [row("oct", "2026-10-01"), row("nov", "2026-11-01"), row("dec", "2026-12-01")];
-    expect(selectCurrentPick(rows, november)).toEqual({ status: "current", pick: rows[1] });
+    expect(selectCurrentPick(rows, november)).toEqual({ status: "current", pick: rows[0] });
+  });
+
+  test("keeps November current on December 1 when nothing is marked and no meeting is saved", () => {
+    const rows = [row("nov", "2026-11-01"), row("dec", "2026-12-01")];
+    expect(
+      selectCurrentPick(rows, { today: "2026-12-01", calendarMonth: "2026-12-01", meeting: null }),
+    ).toEqual({ status: "current", pick: rows[0] });
   });
 
   test("keeps November current while its meeting is still ahead, even if December is saved", () => {
@@ -67,9 +74,31 @@ describe("current pick", () => {
     ).toEqual({ status: "unselected" });
   });
 
-  test("a blank plan holds the current month and does not hand the page to a later pick", () => {
+  test("an unmarked pick stays when no meeting is saved and a later pick waits", () => {
     const rows = [row("nov", "2026-11-01"), row("dec", "2026-12-01")];
     expect(selectCurrentPick(rows, november)).toEqual({ status: "current", pick: rows[0] });
+  });
+
+  test("holds a pick through a month boundary while its meeting is still ahead", () => {
+    const rows = [row("nov", "2026-11-01"), row("dec", "2026-12-01")];
+    expect(
+      selectCurrentPick(rows, {
+        today: "2026-12-01",
+        calendarMonth: "2026-12-01",
+        meeting: { pickId: "nov", meetingDay: "2026-12-05" },
+      }),
+    ).toEqual({ status: "current", pick: rows[0] });
+  });
+
+  test("an upcoming meeting on a later pick holds that pick when an earlier pick was never marked", () => {
+    const rows = [row("mar", "2026-03-01"), row("nov", "2026-11-01"), row("dec", "2026-12-01")];
+    expect(
+      selectCurrentPick(rows, {
+        today: "2026-11-18",
+        calendarMonth: "2026-11-01",
+        meeting: { pickId: "nov", meetingDay: "2026-11-18" },
+      }),
+    ).toEqual({ status: "current", pick: rows[1] });
   });
 
   test("an upcoming meeting keeps its own pick current", () => {
@@ -94,6 +123,13 @@ describe("reached picks", () => {
         meeting: null,
       }),
     ).toBe("2026-12-01");
+  });
+
+  test("leaves December out while unmarked November is still current", () => {
+    const rows = [row("nov", "2026-11-01"), row("dec", "2026-12-01")];
+    expect(
+      reachThrough(rows, { today: "2026-12-01", calendarMonth: "2026-12-01", meeting: null }),
+    ).toBe("2026-11-01");
   });
 
   test("includes every saved pick while the catalog is unselected", () => {

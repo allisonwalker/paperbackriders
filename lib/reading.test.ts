@@ -286,6 +286,30 @@ describe("reading totals", () => {
     ]);
   });
 
+  test("leaves a later pick out while an unmarked earlier pick is still current", async () => {
+    const state = await loadReadingTotals({
+      now: new Date("2026-12-01T20:00:00.000Z"),
+      timeZone: CLUB_TIMEZONE,
+      loadRows: async () => [
+        book("2026-11-01", { pageCount: 40, genre: "Memoir" }),
+        book("2026-12-01", { pageCount: 400, genre: "Mystery" }),
+      ],
+    });
+
+    expect(state).toEqual({
+      status: "ready",
+      bookCount: 1,
+      pageTotal: 40,
+      genres: [
+        {
+          label: "Memoir",
+          count: 1,
+          books: [{ title: "", month: "2026-11-01", coverUrl: null }],
+        },
+      ],
+    });
+  });
+
   test("uses the club calendar and still drops a pick after the current one", async () => {
     const state = await loadReadingTotals({
       now: new Date("2026-11-01T06:30:00.000Z"),

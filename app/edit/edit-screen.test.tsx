@@ -290,7 +290,7 @@ describe("edit screen", () => {
     expect(meeting).toContain('name="place"');
     expect(meeting).toContain('type="text"');
     expect(meeting).not.toContain("<select");
-    expect(meeting).toContain("November 2026 — The Left Hand of Darkness by Ursula K. Le Guin");
+    expect(meeting).toContain("March 2026 — Read a book from the year you were born.");
     expect(meeting).toContain("Date and place aren&#x27;t set yet");
     expect(meeting).toContain("Skip this meeting");
     expect(meeting).toContain("Save meeting");
@@ -313,7 +313,13 @@ describe("edit screen", () => {
     const html = renderToStaticMarkup(
       <EditScreen
         access={{ status: "signed-in", email: "keeper@example.com" }}
-        records={{ status: "ready", picks: [book(), prompt()] }}
+        records={{
+          status: "ready",
+          picks: [
+            { ...book(), meetingSettled: "happened" },
+            { ...prompt(), meetingSettled: "happened" },
+          ],
+        }}
         selectedMonth={null}
         notice={null}
         defaultMonth="2027-01"

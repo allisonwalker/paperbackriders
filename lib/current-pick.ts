@@ -24,8 +24,8 @@ export const UNSELECTED_PICK = "The next book hasn't been selected. Watch this s
 
 /**
  * The current pick is the book the club is on.
- * A past club month counts as happened. So does a stored meeting whose date
- * is before today, and a pick marked happened or skipped.
+ * It is released when its meeting date is before today, or when it is marked
+ * happened or skipped. A new club month does not release it.
  * A meeting dated today or later keeps its own pick current.
  * The next saved pick becomes current once this one is released. A further pick waits.
  * With nothing saved after the released pick, the catalog is unselected.
@@ -82,12 +82,9 @@ function heldByUpcomingMeeting<T extends CurrentPickRow>(
   return pick;
 }
 
-function isReleased(row: CurrentPickRow, input: { today: string; calendarMonth: string; meeting: CurrentMeeting | null }): boolean {
+function isReleased(row: CurrentPickRow, input: { today: string; meeting: CurrentMeeting | null }): boolean {
   if (row.meetingSettled === "skipped" || row.meetingSettled === "happened") return true;
-  if (input.meeting?.pickId === row.id && input.meeting.meetingDay && input.meeting.meetingDay < input.today) {
-    return true;
-  }
-  return row.month < input.calendarMonth;
+  return Boolean(input.meeting?.pickId === row.id && input.meeting.meetingDay && input.meeting.meetingDay < input.today);
 }
 
 function isClubDay(value: string): boolean {
