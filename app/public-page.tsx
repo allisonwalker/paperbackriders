@@ -94,7 +94,7 @@ function FutureMonths({ entries }: { entries: HistoryEntry[] }) {
   if (entries.length === 0) return null;
 
   return (
-    <section className="shelf" aria-label="Future months">
+    <section className="shelf shelf-open" aria-label="Future months">
       <h3>Future months</h3>
       <Shelf entries={entries} />
     </section>
@@ -104,7 +104,7 @@ function FutureMonths({ entries }: { entries: HistoryEntry[] }) {
 function History({ entries }: { entries: HistoryEntry[] }) {
   return (
     <section className="shelf" aria-label="Reading history">
-      <h3>What we’ve read</h3>
+      <h3>What we’ve already read</h3>
       <Shelf entries={entries} />
     </section>
   );

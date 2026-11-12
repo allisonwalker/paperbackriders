@@ -192,6 +192,10 @@ h2 + .dateline,
   border-bottom: 1px solid rgba(26, 18, 12, 0.22);
 }
 
+.shelf-open .bib li:last-child {
+  border-bottom: 0;
+}
+
 .bib .jacket img {
   display: block;
   width: 3.4rem;

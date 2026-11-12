@@ -324,7 +324,7 @@ describe("public page", () => {
     const list = html.slice(historyAt);
 
     expect(html).toContain("Future months");
-    expect(html).toContain("What we’ve read");
+    expect(html).toContain("What we’ve already read");
     expect(futureAt).toBeGreaterThan(heroAt);
     expect(decemberAt).toBeGreaterThan(futureAt);
     expect(historyAt).toBeGreaterThan(decemberAt);
@@ -424,7 +424,7 @@ describe("public page", () => {
     });
 
     expect(html).not.toContain("Future months");
-    expect(html).toContain("What we’ve read");
+    expect(html).toContain("What we’ve already read");
   });
 
   test("shows the stored genre and omits a missing page count or genre", () => {
@@ -498,7 +498,7 @@ describe("public page", () => {
     const html = render({ status: "error" }, none, { status: "error" });
     expect(html).toContain("This page could not load.");
     expect(html).not.toContain("Reading history");
-    expect(html).not.toContain("What we’ve read");
+    expect(html).not.toContain("What we’ve already read");
   });
 
   test("renders the place as text, including an address that looks like contact details", () => {
