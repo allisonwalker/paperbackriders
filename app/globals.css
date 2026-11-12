@@ -78,6 +78,11 @@ main > .public-nav + [role="alert"] {
   margin-top: 0;
 }
 
+main section.shelf + section.shelf {
+  border-top: 0;
+  padding-top: 0;
+}
+
 .kicker {
   margin: 0 0 0.45rem;
   font-size: 0.75rem;

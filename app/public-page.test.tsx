@@ -317,39 +317,46 @@ describe("public page", () => {
     const heroAt = html.indexOf("<h2>The Prestige</h2>");
     const futureAt = html.indexOf('aria-label="Future months"');
     const decemberAt = html.indexOf("December 2026");
+    const currentAt = html.indexOf('aria-label="Currently reading"');
     const historyAt = html.indexOf('aria-label="Reading history"');
     const octoberAt = html.indexOf("October 2026");
     const marchAt = html.indexOf("March 2026");
-    const future = html.slice(futureAt, historyAt);
+    const future = html.slice(futureAt, currentAt);
+    const current = html.slice(currentAt, historyAt);
     const list = html.slice(historyAt);
 
     expect(html).toContain("Future months");
-    expect(html).toContain("What we’ve already read");
+    expect(html).toContain("Currently reading");
+    expect(html).toContain("Already read");
     expect(futureAt).toBeGreaterThan(heroAt);
     expect(decemberAt).toBeGreaterThan(futureAt);
-    expect(historyAt).toBeGreaterThan(decemberAt);
-    expect(octoberAt).toBeGreaterThan(historyAt);
-    expect(marchAt).toBeGreaterThan(octoberAt);
+    expect(currentAt).toBeGreaterThan(decemberAt);
+    expect(octoberAt).toBeGreaterThan(currentAt);
+    expect(historyAt).toBeGreaterThan(octoberAt);
+    expect(marchAt).toBeGreaterThan(historyAt);
     expect(future).toContain("Piranesi");
+    expect(current).not.toContain("Piranesi");
     expect(list).not.toContain("Piranesi");
     expect(future).toContain('<span class="author">Susanna Clarke</span>');
     expect(future).not.toContain("Susanna Clarke ·");
     expect(future).toContain("272 pages");
     expect(future).toContain("Fantasy");
     expect(future).toContain('<img src="https://covers.openlibrary.org/b/id/42-M.jpg"');
-    expect(list.indexOf("The Prestige")).toBeLessThan(list.indexOf("The Wicker Husband"));
-    expect(list).toContain('<span class="author">Christopher Priest</span>');
-    expect(list).toContain("404 pages");
-    expect(list).toContain('<img src="/covers/the-wicker-husband.png"');
-    expect(list).toContain("336 pages");
-    expect(list).toContain("Romance");
+    expect(current.indexOf("The Prestige")).toBeLessThan(current.indexOf("The Wicker Husband"));
+    expect(list).not.toContain("The Prestige");
+    expect(current).toContain('<span class="author">Christopher Priest</span>');
+    expect(current).toContain("404 pages");
+    expect(current).toContain('<img src="/covers/the-wicker-husband.png"');
+    expect(current).toContain("336 pages");
+    expect(current).toContain("Romance");
+    expect(current).toContain('aria-current="true"');
     expect(list).toContain("<em");
     expect(list).toContain("Read a book from the year you were born.");
     const promptAt = list.indexOf("Read a book from the year you were born.");
     const promptRow = list.slice(list.lastIndexOf("<li", promptAt), list.indexOf("</li>", promptAt));
     expect(promptRow).toContain("<em");
     expect(promptRow).not.toContain("<img");
-    expect(list).toContain('aria-current="true"');
+    expect(list).not.toContain('aria-current="true"');
     expect(list).not.toContain("1995");
     expect(list).not.toContain("Fiction");
     expect(list).not.toContain("<select");
@@ -423,8 +430,11 @@ describe("public page", () => {
       ],
     });
 
+    const current = html.slice(html.indexOf('aria-label="Currently reading"'), html.indexOf('aria-label="Reading history"'));
+
     expect(html).not.toContain("Future months");
-    expect(html).toContain("What we’ve already read");
+    expect(current).toContain("The Prestige");
+    expect(html.slice(html.indexOf('aria-label="Reading history"'))).not.toContain("The Prestige");
   });
 
   test("shows the stored genre and omits a missing page count or genre", () => {
@@ -498,7 +508,7 @@ describe("public page", () => {
     const html = render({ status: "error" }, none, { status: "error" });
     expect(html).toContain("This page could not load.");
     expect(html).not.toContain("Reading history");
-    expect(html).not.toContain("What we’ve already read");
+    expect(html).not.toContain("Already read");
   });
 
   test("renders the place as text, including an address that looks like contact details", () => {
@@ -539,6 +549,7 @@ describe("public page", () => {
     expect(css).not.toMatch(/\.public-nav[^}]*box-shadow/);
     expect(css).not.toMatch(/\.public-nav[^}]*--shirt/);
     expect(css).toMatch(/main > \.public-nav \+ section[\s\S]*border-top: 0/);
+    expect(css).toMatch(/main section\.shelf \+ section\.shelf \{[^}]*border-top: 0/);
     expect(narrow).toContain("flex-direction: column");
     expect(narrow).toContain("order: -1");
     expect(narrow).toMatch(/\.public-nav \{[^}]*flex-wrap: nowrap/);
