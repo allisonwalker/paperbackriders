@@ -7,8 +7,14 @@ node_modules/
 *.tsbuildinfo
 
 # The club spreadsheet and the venue list stay in Allison's own files.
+# Git on Linux matches these patterns case-sensitively.
 *.xlsx
+*.XLSX
 *.xls
+*.XLS
 *.csv
+*.CSV
 *.numbers
+*.NUMBERS
 *.ods
+*.ODS
