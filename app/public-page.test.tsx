@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { NO_UPCOMING_MEETING, type MeetingView } from "@/lib/meeting";
@@ -47,10 +48,25 @@ describe("public page", () => {
     const html = render({ status: "empty" });
     const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
 
-    expect(header).toContain("Paperback");
-    expect(header).toContain("Riders");
+    const heading = header.slice(header.indexOf("<h1"), header.indexOf("</h1>"));
+    expect(heading).toContain("Paperback");
+    expect(heading).toContain("Riders");
+    expect(heading).toContain("<br/>");
+    expect(heading).not.toContain("<a");
     expect(header).toContain('src="/paperback-riders-mark.jpg"');
+    expect(header.match(/<h1/g)).toHaveLength(1);
     expect(header).not.toContain("pick");
+    expect(header).not.toContain("public-nav");
+    expect(header).not.toContain(">Catalog</a>");
+    const nav = html.slice(html.indexOf('class="public-nav"'), html.indexOf("<section"));
+    expect(html.indexOf("</header>")).toBeLessThan(html.indexOf('class="public-nav"'));
+    expect(nav).toContain(">Catalog</a>");
+    expect(nav).toContain(">Analytics</a>");
+    expect(nav).toContain('href="/"');
+    expect(nav).toContain('href="/analytics"');
+    expect(nav).toMatch(/<a(?=[^>]*href="\/")(?=[^>]*aria-current="page")[^>]*>/);
+    expect(nav).not.toMatch(/<a(?=[^>]*href="\/analytics")(?=[^>]*aria-current="page")[^>]*>/);
+    expect(nav).not.toContain("/edit");
   });
 
   test("puts the current month label immediately above the cover and the facts on one line", () => {
@@ -62,6 +78,7 @@ describe("public page", () => {
     expect(labelAt).toBeGreaterThan(-1);
     expect(labelAt).toBeLessThan(coverAt);
     expect(coverAt).toBeLessThan(titleAt);
+    expect(html).toContain("<h2>The Prestige</h2>");
     expect(html).toContain("Christopher Priest");
     expect(html).toContain("1995 · 404 pages · Fiction");
     expect(html).not.toContain("October 2026");
@@ -103,7 +120,7 @@ describe("public page", () => {
     });
 
     expect(html).toContain("November’s pick");
-    expect(html).toContain("Read a book from the year you were born.");
+    expect(html).toContain("<h2>Read a book from the year you were born.</h2>");
     expect(html).not.toContain("pages");
     expect(html.indexOf("<img")).toBe(html.lastIndexOf("<img"));
   });
@@ -128,9 +145,38 @@ describe("public page", () => {
     expect(html).not.toContain("example.com");
   });
 
+  test("says the next book has not been selected", () => {
+    const html = render({ status: "unselected" });
+
+    expect(html).toContain("The next book hasn&#x27;t been selected. Watch this space.");
+    expect(html).toContain('class="unselected-pick"');
+    expect(html).not.toContain("<h2");
+    expect(html).not.toContain("could not load");
+
+    const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
+    const rule = css.slice(css.indexOf(".unselected-pick {"), css.indexOf(".unselected-pick {") + 400);
+    expect(rule).toContain("var(--font-fraunces)");
+    expect(rule).toContain("text-wrap: balance");
+    expect(rule).toMatch(/font-size:\s*clamp\(1\.35rem,\s*[\d.]+vw,\s*2rem\)/);
+    expect(css).toMatch(/h2\s*\{[^}]*font-size:\s*clamp\(2\.4rem,\s*5\.4vw,\s*4\.2rem\)/);
+  });
+
+  test("shows an unscheduled meeting without a date or a place", () => {
+    const html = render(book, {
+      status: "unscheduled",
+      lead: "Date and place to come",
+      discussing: "The Prestige by Christopher Priest",
+    });
+
+    expect(html).toContain("Date and place to come");
+    expect(html).toContain("discussing The Prestige by Christopher Priest");
+    expect(html).not.toContain("Meets in");
+    expect(html).not.toContain("Priya");
+  });
+
   test("leaves the hero empty when there is no pick and still says there is no meeting", () => {
     const html = render({ status: "empty" });
-    expect(html).toContain('aria-label="This month&#x27;s pick"');
+    expect(html).toContain('aria-label="Current pick"');
     expect(html).not.toContain("<h2");
     expect(html).not.toContain("could not load");
     expect(html).not.toContain("’s pick");
@@ -146,6 +192,10 @@ describe("public page", () => {
     expect(html).not.toContain(NO_UPCOMING_MEETING);
     expect(html).not.toContain("Meets in 10 days");
     expect(html).toContain('src="/paperback-riders-mark.jpg"');
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/analytics"');
+    expect(html).toContain('class="public-nav"');
+    expect(html).not.toContain("/edit");
   });
 
   test("puts the meeting dateline under the featured title", () => {
@@ -225,7 +275,10 @@ describe("public page", () => {
         title: "Piranesi",
         author: "Susanna Clarke",
         pageCount: 272,
+        genre: "Fantasy",
+        coverUrl: "https://covers.openlibrary.org/b/id/42-M.jpg",
         marked: false,
+        entryKey: "2026-12-01",
       },
       {
         kind: "book",
@@ -234,7 +287,22 @@ describe("public page", () => {
         title: "The Prestige",
         author: "Christopher Priest",
         pageCount: 404,
+        genre: null,
+        coverUrl: null,
         marked: true,
+        entryKey: "2026-10-01",
+      },
+      {
+        kind: "book",
+        month: "2026-10-01",
+        monthLabel: "October 2026",
+        title: "The Wicker Husband",
+        author: "Ursula Wills",
+        pageCount: 336,
+        genre: "Romance",
+        coverUrl: "/covers/the-wicker-husband.png",
+        marked: true,
+        entryKey: "2026-10-01:also",
       },
       {
         kind: "prompt",
@@ -242,6 +310,7 @@ describe("public page", () => {
         monthLabel: "March 2026",
         promptText: "Read a book from the year you were born.",
         marked: false,
+        entryKey: "2026-03-01",
       },
     ];
     const html = render(book, none, { status: "ready", entries });
@@ -256,17 +325,88 @@ describe("public page", () => {
     expect(octoberAt).toBeGreaterThan(decemberAt);
     expect(marchAt).toBeGreaterThan(octoberAt);
     expect(list).toContain("Piranesi");
-    expect(list).toContain("Susanna Clarke · 272 pages");
-    expect(list).toContain("Christopher Priest · 404 pages");
+    expect(list).toContain('<span class="author">Susanna Clarke</span>');
+    expect(list).not.toContain("Susanna Clarke ·");
+    expect(list).toContain("272 pages");
+    expect(list).toContain("Fantasy");
+    expect(list).toContain('<img src="https://covers.openlibrary.org/b/id/42-M.jpg"');
+    expect(list.indexOf("The Prestige")).toBeLessThan(list.indexOf("The Wicker Husband"));
+    expect(list).toContain('<span class="author">Christopher Priest</span>');
+    expect(list).toContain("404 pages");
+    expect(list).toContain('<img src="/covers/the-wicker-husband.png"');
+    expect(list).toContain("336 pages");
+    expect(list).toContain("Romance");
     expect(list).toContain("<em");
     expect(list).toContain("Read a book from the year you were born.");
+    const promptAt = list.indexOf("Read a book from the year you were born.");
+    const promptRow = list.slice(list.lastIndexOf("<li", promptAt), list.indexOf("</li>", promptAt));
+    expect(promptRow).toContain("<em");
+    expect(promptRow).not.toContain("<img");
     expect(list).toContain('aria-current="true"');
     expect(list).not.toContain("1995");
     expect(list).not.toContain("Fiction");
-    expect(list).not.toContain("<img");
     expect(list).not.toContain("<select");
     expect(list).not.toContain("<input");
-    expect(list).not.toContain("openlibrary.org");
+    expect(list).not.toContain("example.com");
+  });
+
+  test("shows the stored genre and omits a missing page count or genre", () => {
+    const entries: HistoryEntry[] = [
+      {
+        kind: "book",
+        month: "2024-06-01",
+        monthLabel: "June 2024",
+        title: "Shadow of the Wind",
+        author: "Carlos Ruiz Zafon",
+        pageCount: null,
+        genre: "Gothic mystery / historical fiction",
+        coverUrl: "https://covers.openlibrary.org/b/id/77-M.jpg",
+        marked: false,
+        entryKey: "2024-06-01",
+      },
+      {
+        kind: "book",
+        month: "2024-05-01",
+        monthLabel: "May 2024",
+        title: "Untitled book",
+        author: "No Facts",
+        pageCount: null,
+        genre: null,
+        coverUrl: null,
+        marked: false,
+        entryKey: "2024-05-01",
+      },
+      {
+        kind: "prompt",
+        month: "2024-03-01",
+        monthLabel: "March 2024",
+        promptText: "A book with a green cover.",
+        marked: false,
+        entryKey: "2024-03-01",
+      },
+    ];
+    const html = render(book, none, { status: "ready", entries });
+    const list = html.slice(html.indexOf('aria-label="Reading history"'));
+    const shadowAt = list.indexOf("Shadow of the Wind");
+    const shadowRow = list.slice(list.lastIndexOf("<li", shadowAt), list.indexOf("</li>", shadowAt));
+    const emptyAt = list.indexOf("Untitled book");
+    const emptyRow = list.slice(list.lastIndexOf("<li", emptyAt), list.indexOf("</li>", emptyAt));
+    const promptAt = list.indexOf("A book with a green cover.");
+    const promptRow = list.slice(list.lastIndexOf("<li", promptAt), list.indexOf("</li>", promptAt));
+
+    expect(shadowRow).toContain('<img src="https://covers.openlibrary.org/b/id/77-M.jpg"');
+    expect(shadowRow).toContain("June 2024");
+    expect(shadowRow.indexOf("Shadow of the Wind")).toBeLessThan(shadowRow.indexOf("Carlos Ruiz Zafon"));
+    expect(shadowRow).toContain('<span class="author">Carlos Ruiz Zafon</span>');
+    expect(shadowRow).toContain("Gothic mystery / historical fiction");
+    expect(shadowRow).not.toContain("Historical fiction");
+    expect(shadowRow).not.toContain("pages");
+    expect(shadowRow).not.toContain("2001");
+    expect(emptyRow).not.toContain("pages");
+    expect(emptyRow).not.toContain("genre");
+    expect(promptRow).not.toContain("<img");
+    expect(promptRow).not.toContain("pages");
+    expect(promptRow).not.toContain("genre");
   });
 
   test("shows the history region with no months when the club has no picks", () => {
@@ -293,8 +433,38 @@ describe("public page", () => {
 
     expect(html).toContain("Meets today");
     expect(html).toContain("Ada&#x27;s porch &lt;script&gt;alert(1)&lt;/script&gt; ada@example.com");
-    expect(html).not.toContain("<script>alert");
-    expect(html).not.toContain("mailto:");
-    expect(html).not.toContain("<a ");
+    const datelineStart = html.indexOf('class="dateline"');
+    const dateline = html.slice(datelineStart, html.indexOf("</p>", datelineStart));
+    expect(dateline).not.toContain("<script>alert");
+    expect(dateline).not.toContain("mailto:");
+    expect(dateline).not.toContain("<a ");
+  });
+
+  test("shares the catalog lockup, with the mark left of the name until 720px", () => {
+    const page = readFileSync(new URL("./public-page.tsx", import.meta.url), "utf8");
+    const analytics = readFileSync(new URL("./analytics/analytics-page.tsx", import.meta.url), "utf8");
+    const masthead = readFileSync(new URL("./public-masthead.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
+    const narrow = css.slice(css.indexOf("@media (max-width: 720px)"));
+
+    expect(page).toContain("<PublicMasthead />");
+    expect(analytics).toContain("<PublicMasthead />");
+    expect(page).toContain('<PublicNav current="catalog" />');
+    expect(analytics).toContain('<PublicNav current="analytics" />');
+    expect(masthead.indexOf("<img")).toBeLessThan(masthead.indexOf("<h1>"));
+    expect(masthead).not.toContain("next/link");
+    expect(masthead).not.toContain("public-nav");
+    expect(css).toMatch(/\.logo h1 \{[^}]*font-size: clamp\(2\.7rem, 6\.6vw, 5rem\)/);
+    expect(css).toMatch(/\.public-nav a \{[^}]*font-size: 0\.95rem/);
+    expect(css).toMatch(/\.public-nav \{[^}]*border-top: 3px solid var\(--ink\)/);
+    expect(css).toMatch(/\.public-nav a\[aria-current="page"\] \{[^}]*background: var\(--ink\)/);
+    expect(css).toMatch(/\.public-nav a\[aria-current="page"\] \{[^}]*color: var\(--paper\)/);
+    expect(css).not.toMatch(/\.public-nav[^}]*box-shadow/);
+    expect(css).not.toMatch(/\.public-nav[^}]*--shirt/);
+    expect(css).toMatch(/main > \.public-nav \+ section[\s\S]*border-top: 0/);
+    expect(narrow).toContain("flex-direction: column");
+    expect(narrow).toContain("order: -1");
+    expect(narrow).toMatch(/\.public-nav \{[^}]*flex-wrap: nowrap/);
+    expect(narrow).toMatch(/\.logo h1 \{[^}]*font-size: clamp\(2\.2rem, 12vw, 3\.1rem\)/);
   });
 });

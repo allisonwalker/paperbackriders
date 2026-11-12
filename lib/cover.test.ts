@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import nextConfig from "../next.config";
-import { displayCoverUrl } from "./cover";
+import { displayCoverUrl, historyCoverUrl, WICKER_HUSBAND_COVER } from "./cover";
 
 describe("cover host", () => {
   test("keeps an https cover on covers.openlibrary.org", () => {
@@ -16,6 +16,20 @@ describe("cover host", () => {
     expect(displayCoverUrl("not a url")).toBeNull();
     expect(displayCoverUrl("")).toBeNull();
     expect(displayCoverUrl(null)).toBeNull();
+  });
+
+  test("uses a medium Open Library file for a history thumbnail", () => {
+    expect(historyCoverUrl("https://covers.openlibrary.org/b/id/123-L.jpg")).toBe(
+      "https://covers.openlibrary.org/b/id/123-M.jpg",
+    );
+    expect(historyCoverUrl("https://covers.openlibrary.org/b/id/123-M.jpg")).toBe(
+      "https://covers.openlibrary.org/b/id/123-M.jpg",
+    );
+    expect(historyCoverUrl("https://example.com/cover.jpg")).toBeNull();
+    expect(historyCoverUrl(WICKER_HUSBAND_COVER)).toBe(WICKER_HUSBAND_COVER);
+    expect(displayCoverUrl(WICKER_HUSBAND_COVER)).toBe(WICKER_HUSBAND_COVER);
+    expect(displayCoverUrl("/covers/other.png")).toBeNull();
+    expect(displayCoverUrl(`${WICKER_HUSBAND_COVER}?x=1`)).toBeNull();
   });
 
   test("the image optimizer's remote allowlist is covers.openlibrary.org only", () => {

@@ -27,6 +27,9 @@ describe("analytics route", () => {
     expect(source).not.toMatch(/["']use client["']/);
     expect(source).not.toMatch(/maplibre|geoapify|openlibrary|openfreemap/i);
     expect(source).toContain("loadMeetingPins");
+    expect(source).toContain("Analytics · Paperback Riders");
+    expect(source).not.toContain("top genres");
+    expect(source).not.toContain("Book analytics");
   });
 
   test("puts the totals in the first HTML response", async () => {
@@ -34,13 +37,17 @@ describe("analytics route", () => {
       status: "ready",
       bookCount: 2,
       pageTotal: 500,
-      genres: [{ label: "Fantasy", count: 2 }],
+      genres: [{ label: "Fantasy", count: 2, books: [] }],
     });
     vi.mocked(loadMeetingPins).mockResolvedValue({ status: "ready", pins: [] });
 
     const html = renderToStaticMarkup(await Page());
 
-    expect(html).toContain("Book analytics");
+    expect(html).toContain('src="/paperback-riders-mark.jpg"');
+    expect(html).toContain("Paperback");
+    expect(html).toContain("Riders");
+    expect(html).not.toContain(">Analytics</h1>");
+    expect(html).not.toContain("Book analytics");
     expect(html).toContain(">2<");
     expect(html).toContain(">500<");
     expect(html).toContain("Fantasy");
@@ -59,5 +66,7 @@ describe("analytics route", () => {
     expect(html).not.toContain("total-value");
     expect(html).not.toContain("books");
     expect(html).not.toContain("pages");
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/analytics"');
   });
 });

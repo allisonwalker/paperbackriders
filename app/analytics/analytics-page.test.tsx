@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import type { ReadingState } from "@/lib/reading";
@@ -17,22 +19,92 @@ describe("book analytics page", () => {
       bookCount: 12,
       pageTotal: 4812,
       genres: [
-        { label: "Fantasy", count: 4 },
-        { label: "History", count: 3 },
+        {
+          label: "Fantasy",
+          count: 4,
+          books: [
+            {
+              title: "Piranesi",
+              month: "2026-11-01",
+              coverUrl: "https://covers.openlibrary.org/b/id/111-L.jpg",
+            },
+            {
+              title: "The Wicker Husband",
+              month: "2026-10-01",
+              coverUrl: "/covers/the-wicker-husband.png",
+            },
+            { title: "Missing", month: "2026-09-01", coverUrl: null },
+            { title: "Elsewhere", month: "2026-08-01", coverUrl: "https://example.com/cover.jpg" },
+          ],
+        },
+        {
+          label: "History",
+          count: 3,
+          books: [
+            { title: "Kindred", month: "2026-07-01", coverUrl: null },
+            { title: "Wolf Hall", month: "2026-06-01", coverUrl: null },
+            { title: "Circe", month: "2026-05-01", coverUrl: null },
+          ],
+        },
       ],
     });
 
-    expect(html).toContain("Book analytics");
+    const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+    const heading = header.slice(header.indexOf("<h1"), header.indexOf("</h1>"));
+    expect(heading).toContain("Paperback");
+    expect(heading).toContain("Riders");
+    expect(heading).toContain("<br/>");
+    expect(heading).not.toContain("<a");
+    expect(header).toContain('src="/paperback-riders-mark.jpg"');
+    expect(header.match(/<h1/g)).toHaveLength(1);
+    expect(header).not.toContain(">Analytics</h1>");
+    expect(html).not.toContain("Book analytics");
+    expect(header).not.toContain("public-nav");
+    const nav = html.slice(html.indexOf('class="public-nav"'), html.indexOf("<section"));
+    expect(html.indexOf("</header>")).toBeLessThan(html.indexOf('class="public-nav"'));
+    expect(nav).toContain(">Catalog</a>");
+    expect(nav).toContain('href="/analytics"');
+    expect(nav).toMatch(/<a(?=[^>]*href="\/analytics")(?=[^>]*aria-current="page")[^>]*>/);
+    expect(nav).not.toContain("/edit");
     expect(html).toContain("12");
     expect(html).toContain("books");
     expect(html).toContain("4,812");
     expect(html).toContain("pages");
     expect(html.indexOf("Fantasy")).toBeLessThan(html.indexOf("History"));
-    expect(html).toContain("4 books");
-    expect(html).toContain("3 books");
+    expect(html).toContain("4 books · 33%");
+    expect(html).toContain("3 books · 25%");
+    expect(html).toContain(
+      'aria-label="Fantasy, 4 books, 33%, Piranesi, The Wicker Husband, Missing, Elsewhere"',
+    );
+    expect(html).toContain('aria-label="History, 3 books, 25%, Kindred, Wolf Hall, Circe"');
     expect(html.indexOf("Reading totals")).toBeLessThan(html.indexOf("Meeting places"));
+    expect(html).toContain("genre-list");
+    expect(html).toContain("genre-tile");
+    const genres = html.slice(html.indexOf("Genres"), html.indexOf("Meeting places"));
+    expect(genres.match(/class="genre-tile"/g)).toHaveLength(7);
+    expect(genres.match(/<img /g)).toHaveLength(2);
+    expect(genres).toContain("https://covers.openlibrary.org/b/id/111-M.jpg");
+    expect(genres).toContain("/covers/the-wicker-husband.png");
+    expect(genres).not.toContain("example.com");
+    expect(genres).not.toContain("title=");
+    expect(genres.match(/<ul/g)).toHaveLength(1);
+    expect(genres).not.toContain("popover");
+    const css = readFileSync(path.join(import.meta.dirname, "../globals.css"), "utf8");
+    expect(css).toMatch(/\.genre-bar\s*\{[^}]*gap:\s*2px;/s);
+    expect(css).toMatch(/\.genre-tile\s*\{[^}]*width:\s*2\.25rem;\s*height:\s*3\.375rem;/s);
     expect(html).toContain("No places are confirmed yet.");
     expect(html).not.toContain("<canvas");
+    expect(frames(html)).toEqual(["books", "pages", "genres"]);
+    expect(css).toMatch(/\.reading-frame\s*\{[^}]*border:\s*1px solid rgba\(26,\s*18,\s*12,\s*0\.22\);/s);
+    expect(css).toMatch(/\.reading-frame\s*\{[^}]*padding:/s);
+    expect(css).not.toMatch(/\.reading-frame\s*\{[^}]*3px/s);
+    expect(css).not.toMatch(/\.reading-frame\s*\{[^}]*--shirt/s);
+    expect(css).toMatch(/@media \(min-width: 721px\)\s*\{[^}]*\.totals-pair\s*\{[^}]*flex-direction:\s*row;/s);
+    expect(css).toMatch(/\.total\s*\{[^}]*min-width:\s*12rem;/s);
+    expect(css).toMatch(/\.totals-pair\s*\{[^}]*flex-direction:\s*column;[^}]*width:\s*100%;/s);
+    expect(css).not.toMatch(/\.total\s*\{[^}]*max-width:\s*16rem;/s);
+    expect(css).toMatch(/\.genre-panel\s*\{[^}]*width:\s*100%;/s);
+    expect(css).toMatch(/\.meeting-map\s*\{[^}]*border:\s*3px solid var\(--ink\);/s);
   });
 
   test("shows zero books, zero pages, and no genres", () => {
@@ -43,6 +115,31 @@ describe("book analytics page", () => {
     expect(html).toContain("pages");
     expect(html).toContain("No genres.");
     expect(html).not.toContain("genre-list");
+    expect(frames(html)).toEqual(["books", "pages", "genres"]);
+    const genres = html.slice(html.indexOf('class="genre-panel'), html.indexOf("Meeting places"));
+    expect(genres).toContain("No genres.");
+  });
+
+  test("rounds a partial percentage of every book, including books with no genre", () => {
+    const html = render({
+      status: "ready",
+      bookCount: 6,
+      pageTotal: 100,
+      genres: [
+        {
+          label: "Memoir",
+          count: 1,
+          books: [{ title: "Lifeforms", month: "2026-11-01", coverUrl: null }],
+        },
+      ],
+    });
+
+    expect(html).toContain("1 book · 17%");
+    expect(html).toContain('aria-label="Memoir, 1 book, 17%, Lifeforms"');
+    const genres = html.slice(html.indexOf("Genres"), html.indexOf("Meeting places"));
+    expect(genres).not.toContain("title=");
+    expect(genres.match(/<ul/g)).toHaveLength(1);
+    expect(genres).not.toContain("popover");
   });
 
   test("shows an error and no numbers when the read failed", () => {
@@ -50,12 +147,18 @@ describe("book analytics page", () => {
 
     expect(html).toContain("This page could not load.");
     expect(html).toContain('role="alert"');
+    expect(html).toContain('src="/paperback-riders-mark.jpg"');
+    expect(html).toContain("Paperback");
+    expect(html).toContain("Riders");
     expect(html).not.toContain("total-value");
+    expect(html).not.toContain("reading-frame");
     expect(html).not.toContain("books");
     expect(html).not.toContain("pages");
     expect(html).not.toContain("No genres.");
     expect(html).not.toContain("No places are confirmed yet.");
     expect(html).not.toContain("The map could not load.");
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/analytics"');
   });
 
   test("keeps the totals when the pin query fails", () => {
@@ -68,5 +171,16 @@ describe("book analytics page", () => {
     expect(html).toContain(">80<");
     expect(html).toContain("The map could not load.");
     expect(html).not.toContain("No places are confirmed yet.");
+    expect(frames(html)).toEqual(["books", "pages", "genres"]);
   });
 });
+
+function frames(html: string): string[] {
+  const totals = html.slice(html.indexOf("Reading totals"), html.indexOf("Meeting places"));
+  return [...totals.matchAll(/class="(total|genre-panel) reading-frame"/g)].map((match, index) => {
+    if (match[1] === "genre-panel") {
+      return "genres";
+    }
+    return index === 0 ? "books" : "pages";
+  });
+}

@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { saveMeeting } from "@/lib/meeting-records";
+import { saveMeeting, skipCurrentMeeting } from "@/lib/meeting-records";
 import { meetingInputFromForm, meetingSavedHref, type MeetingErrors } from "@/lib/meeting-input";
 import { RecordKeeperRequiredError } from "@/lib/record-keeper";
 
@@ -35,6 +35,22 @@ async function runSave(formData: FormData): Promise<{ status: "saved" } | Meetin
     }
     throw error;
   }
+}
+
+export async function skipNextMeeting(formData: FormData): Promise<void> {
+  try {
+    const result = await skipCurrentMeeting();
+    if (result.status === "skipped") {
+      await publishMeetingChange();
+      redirect(meetingSavedHref(formData.get("returnMonth")));
+    }
+  } catch (error) {
+    if (error instanceof RecordKeeperRequiredError) {
+      redirect("/edit");
+    }
+    throw error;
+  }
+  redirect("/edit?tab=meeting");
 }
 
 async function publishMeetingChange(): Promise<void> {

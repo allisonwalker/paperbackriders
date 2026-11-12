@@ -20,6 +20,7 @@ function book(overrides: Partial<PickRecord> = {}): PickRecord {
     genre: "Fiction",
     lookupSource: null,
     lookupKey: null,
+    alsoRead: null,
     ...overrides,
   };
 }
@@ -83,6 +84,20 @@ describe("next meeting", () => {
     const view = presentMeeting(meeting("2026-11-18T03:00:00.000Z"), morningAfter, CLUB_TIMEZONE);
 
     expect(view).toEqual({ status: "none" });
+  });
+
+  test("shows an unscheduled meeting without a day count", () => {
+    const view = presentMeeting(
+      { id: "meeting-1", startsAt: null, place: null, pick: book() },
+      noonPacific,
+      CLUB_TIMEZONE,
+    );
+
+    expect(view).toEqual({
+      status: "unscheduled",
+      lead: "Date and place to come",
+      discussing: "The Prestige by Christopher Priest",
+    });
   });
 
   test("is empty when no meeting is stored", () => {

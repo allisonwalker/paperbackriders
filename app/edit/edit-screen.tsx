@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useState, type MouseEvent } from "react";
 import { formatClubMonth } from "@/lib/club-date";
 import type { EditAccess } from "@/lib/edit-access";
+import { selectCurrentPick } from "@/lib/current-pick";
 import type { EditorMeetingState } from "@/lib/meeting";
-import { meetingFormValues } from "@/lib/meeting-input";
+import { DEFAULT_MEETING_TIME } from "@/lib/meeting-input";
 import type { EditorPicksState, PickRecord } from "@/lib/picks";
 import { monthInputValue, storedBookLookup } from "@/lib/validation";
 import type { VenueNameState } from "@/lib/visit-records";
@@ -19,7 +20,7 @@ import {
   type EditorTab,
 } from "./editor-query";
 import { signOutRecordKeeper } from "./actions";
-import { MeetingForm, type MeetingChoice } from "./meeting-form";
+import { MeetingForm } from "./meeting-form";
 import { PlaceFinder } from "./place-form";
 import { DeletePickForm, PickForm, type PickFormValues } from "./pick-form";
 import { SignInForm } from "./sign-in-form";
@@ -309,31 +310,37 @@ function MeetingBody({
     return <p>Save a month&apos;s pick before setting the meeting.</p>;
   }
 
-  const values = meetingFormValues({
-    picks: records.picks,
-    stored: meeting.status === "set" ? meeting : null,
-    today,
-    currentMonth,
-  });
+  const meetingRef =
+    meeting.status === "set"
+      ? { pickId: meeting.pickId, meetingDay: meeting.date }
+      : meeting.status === "unscheduled"
+        ? { pickId: meeting.pickId, meetingDay: null }
+        : null;
+  const selection = selectCurrentPick(records.picks, { today, calendarMonth: currentMonth, meeting: meetingRef });
+  if (selection.status !== "current") {
+    return (
+      <p>
+        The next book hasn&apos;t been selected. Watch this space. Save that pick before setting a meeting.
+      </p>
+    );
+  }
+
+  const current = selection.pick;
+  const scheduledHere = meeting.status === "set" && meeting.pickId === current.id;
 
   return (
     <MeetingForm
       values={{
-        date: values.date,
-        time: values.time,
-        place: values.place,
-        pickId: values.pickId,
+        date: scheduledHere ? meeting.date : today,
+        time: scheduledHere ? meeting.time : DEFAULT_MEETING_TIME,
+        place: scheduledHere ? meeting.place : "",
+        pickId: current.id,
+        pickLabel: choiceLabel(current),
+        unscheduled: meeting.status === "unscheduled" && meeting.pickId === current.id,
         returnMonth,
-        choices: meetingChoices(records.picks),
       }}
     />
   );
-}
-
-function meetingChoices(picks: PickRecord[]): MeetingChoice[] {
-  return [...picks]
-    .sort((left, right) => (left.month < right.month ? 1 : left.month > right.month ? -1 : 0))
-    .map((pick) => ({ id: pick.id, label: choiceLabel(pick) }));
 }
 
 function choiceLabel(pick: PickRecord): string {

@@ -194,6 +194,18 @@ function rowValues(draft: PickDraft) {
     genre: draft.genre,
     lookupSource: draft.lookupSource,
     lookupKey: draft.lookupKey,
+    ...(draft.kind === "prompt"
+      ? {
+          alsoTitle: null,
+          alsoAuthor: null,
+          alsoPublishedYear: null,
+          alsoCoverUrl: null,
+          alsoPageCount: null,
+          alsoGenre: null,
+          alsoLookupSource: null,
+          alsoLookupKey: null,
+        }
+      : {}),
   };
 }
 

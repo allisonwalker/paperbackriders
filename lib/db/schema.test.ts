@@ -24,6 +24,15 @@ describe("pick table", () => {
       "genre",
       "lookupSource",
       "lookupKey",
+      "alsoTitle",
+      "alsoAuthor",
+      "alsoPublishedYear",
+      "alsoCoverUrl",
+      "alsoPageCount",
+      "alsoGenre",
+      "alsoLookupSource",
+      "alsoLookupKey",
+      "meetingSettled",
     ]);
     expect(columns).not.toContain("isCurrent");
     expect(columns).not.toContain("currentPick");
@@ -38,6 +47,8 @@ describe("pick table", () => {
 
     const month = checks.find((constraint) => constraint.name === "picks_month_is_first_day");
     const shape = checks.find((constraint) => constraint.name === "picks_book_or_prompt");
+    const also = checks.find((constraint) => constraint.name === "picks_also_book");
+    const settled = checks.find((constraint) => constraint.name === "picks_meeting_settled");
 
     expect(month?.sql).toContain("extract(day from");
     expect(shape?.sql).toContain("kind");
@@ -56,6 +67,35 @@ describe("pick table", () => {
     expect(shape?.sql).toContain("'open_library'");
     expect(shape?.sql).toContain("prompt_text\" is null");
     expect(shape?.sql).toContain("title\" is null");
+    expect(also?.sql).toContain("also_title");
+    expect(also?.sql).toContain("also_author");
+    expect(also?.sql).toContain("also_published_year");
+    expect(also?.sql).toContain("also_cover_url");
+    expect(also?.sql).toContain("also_page_count");
+    expect(also?.sql).toContain("also_genre");
+    expect(also?.sql).toContain("also_lookup_source");
+    expect(also?.sql).toContain("also_lookup_key");
+    expect(also?.sql).toContain("'book'");
+    expect(also?.sql).toContain("'open_library'");
+    expect(also?.sql).toContain("'manual'");
+    expect(settled?.sql).toContain("meeting_settled");
+    expect(settled?.sql).toContain("'skipped'");
+    expect(settled?.sql).toContain("'happened'");
+  });
+
+  test("the second-book migration follows the meeting migration", () => {
+    const journal = JSON.parse(readFileSync(new URL("../../drizzle/meta/_journal.json", import.meta.url), "utf8")) as {
+      entries: { tag: string }[];
+    };
+    const tags = journal.entries.map((entry) => entry.tag);
+    const sql = readFileSync(new URL("../../drizzle/0005_perpetual_fixer.sql", import.meta.url), "utf8");
+
+    expect(tags.at(-2)).toBe("0004_square_prodigy");
+    expect(tags.at(-1)).toBe("0005_perpetual_fixer");
+    expect(sql).toContain('ADD COLUMN "also_title"');
+    expect(sql).toContain('ADD COLUMN "also_lookup_key"');
+    expect(sql).toContain("picks_also_book");
+    expect(sql).not.toContain("meeting_settled");
   });
 
   test("the page stays on the Node.js runtime and does not check a session", () => {

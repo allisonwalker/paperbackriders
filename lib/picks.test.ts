@@ -25,6 +25,7 @@ function pick(month: string, overrides: Partial<PickRecord> = {}): PickRecord {
     genre: "Fiction",
     lookupSource: null,
     lookupKey: null,
+    alsoRead: null,
     ...overrides,
   };
 }
@@ -50,23 +51,33 @@ describe("featured pick", () => {
     expect(selectFeaturedPick([], "2026-11-01")).toBeNull();
   });
 
-  test("uses the club calendar when loading", async () => {
-    const seen: string[] = [];
+  test("keeps an unmarked earlier month current when a later pick is saved", async () => {
     const state = await loadFeaturedPick({
       now: november,
       timeZone: CLUB_TIMEZONE,
-      loadRows: async (currentMonth) => {
-        seen.push(currentMonth);
-        return [pick("2026-10-01"), pick("2026-12-01")];
-      },
+      loadRows: async () => [pick("2026-10-01"), pick("2026-12-01")],
     });
 
-    expect(seen).toEqual(["2026-11-01"]);
     expect(state).toMatchObject({
       status: "ready",
       month: "2026-10-01",
-      pickLabel: "November\u2019s pick",
+      pickLabel: "Current pick",
       hero: { kind: "book", title: "Title 2026-10-01", monthLabel: "October 2026" },
+    });
+  });
+
+  test("moves to the next saved pick once the earlier pick is marked happened", async () => {
+    const state = await loadFeaturedPick({
+      now: november,
+      timeZone: CLUB_TIMEZONE,
+      loadRows: async () => [pick("2026-10-01", { meetingSettled: "happened" }), pick("2026-12-01")],
+    });
+
+    expect(state).toMatchObject({
+      status: "ready",
+      month: "2026-12-01",
+      pickLabel: "Current pick",
+      hero: { kind: "book", title: "Title 2026-12-01", monthLabel: "December 2026" },
     });
   });
 
@@ -115,7 +126,7 @@ describe("reading history", () => {
     expect(marked.find((entry) => entry.month === "2026-12-01")?.marked).toBe(false);
   });
 
-  test("keeps a book to month, title, author, and page count, and a prompt to its text", () => {
+  test("keeps a book to its cover, author, page count, and genre, and a prompt to its text", () => {
     const entries = toHistory(
       [
         pick("2026-10-01", {
@@ -148,7 +159,10 @@ describe("reading history", () => {
         title: "The Prestige",
         author: "Christopher Priest",
         pageCount: 404,
+        genre: "Fiction",
+        coverUrl: "https://covers.openlibrary.org/b/id/42-M.jpg",
         marked: false,
+        entryKey: "2026-10-01",
       },
       {
         kind: "prompt",
@@ -156,6 +170,73 @@ describe("reading history", () => {
         monthLabel: "March 2026",
         promptText: "Read a book from the year you were born.",
         marked: false,
+        entryKey: "2026-03-01",
+      },
+    ]);
+  });
+
+  test("lists an additional book immediately after that month's main book", () => {
+    const entries = toHistory(
+      [
+        pick("2026-10-01", {
+          title: "Somebody is Walking on Your Grave",
+          author: "Mariana Enriquez",
+          alsoRead: {
+            title: "The Wicker Husband",
+            author: "Ursula Wills",
+            publishedYear: null,
+            coverUrl: "https://covers.openlibrary.org/b/id/99-L.jpg",
+            pageCount: 336,
+            genre: "Romance",
+          },
+        }),
+        pick("2026-09-01", { title: "The Prestige" }),
+      ],
+      "2026-10-01",
+    );
+
+    expect(entries.map((entry) => (entry.kind === "book" ? entry.title : entry.promptText))).toEqual([
+      "Somebody is Walking on Your Grave",
+      "The Wicker Husband",
+      "The Prestige",
+    ]);
+    expect(entries.map((entry) => entry.month)).toEqual(["2026-10-01", "2026-10-01", "2026-09-01"]);
+    expect(entries.map((entry) => entry.entryKey)).toEqual(["2026-10-01", "2026-10-01:also", "2026-09-01"]);
+    expect(entries.filter((entry) => entry.month === "2026-10-01").every((entry) => entry.marked)).toBe(true);
+    expect(entries[1]).toMatchObject({
+      pageCount: 336,
+      genre: "Romance",
+      coverUrl: "https://covers.openlibrary.org/b/id/99-M.jpg",
+    });
+    expect(entries[1]).not.toHaveProperty("publishedYear");
+  });
+
+  test("keeps the stored genre, including a parenthetical the chart shortens", () => {
+    const entries = toHistory(
+      [
+        pick("2024-06-01", {
+          title: "Shadow of the Wind",
+          author: "Carlos Ruiz Zafon",
+          genre: "Gothic mystery / historical fiction",
+          pageCount: null,
+          publishedYear: 2001,
+        }),
+      ],
+      null,
+    );
+
+    expect(entries).toEqual([
+      {
+        kind: "book",
+        month: "2024-06-01",
+        monthLabel: "June 2024",
+        title: "Shadow of the Wind",
+        author: "Carlos Ruiz Zafon",
+        pageCount: null,
+        genre: "Gothic mystery / historical fiction",
+        coverUrl: "https://covers.openlibrary.org/b/id/1-M.jpg",
+        marked: false,
+        entryKey: "2024-06-01",
       },
     ]);
   });
@@ -229,8 +310,10 @@ describe("hero fields", () => {
   });
 
   test("drops a cover whose host is not covers.openlibrary.org", () => {
-    const hero = toHero(pick("2026-10-01", { coverUrl: "https://example.com/cover.jpg" }));
+    const row = pick("2026-10-01", { coverUrl: "https://example.com/cover.jpg" });
+    const hero = toHero(row);
     expect(hero).toMatchObject({ kind: "book", coverUrl: null });
+    expect(toHistory([row], null)[0]).toMatchObject({ kind: "book", coverUrl: null });
   });
 
   test("keeps a stored Open Library id on the record and does not ask Open Library to draw it", () => {
@@ -249,9 +332,19 @@ describe("hero fields", () => {
         genre: "Science fiction",
         lookupSource: "open_library",
         lookupKey: "OL45883W",
+        alsoTitle: null,
+        alsoAuthor: null,
+        alsoPublishedYear: null,
+        alsoCoverUrl: null,
+        alsoPageCount: null,
+        alsoGenre: null,
+        alsoLookupSource: null,
+        alsoLookupKey: null,
+        meetingSettled: null,
       });
 
       expect(record.lookupSource).toBe("open_library");
+      expect(record.alsoRead).toBeNull();
       expect(record.lookupKey).toBe("OL45883W");
       expect(toHero(record)).toEqual({
         kind: "book",

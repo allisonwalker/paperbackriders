@@ -19,6 +19,7 @@ function book(): PickRecord {
     genre: "Science fiction",
     lookupSource: "open_library",
     lookupKey: "OL45883W",
+    alsoRead: null,
   };
 }
 
@@ -36,6 +37,7 @@ function prompt(): PickRecord {
     genre: null,
     lookupSource: null,
     lookupKey: null,
+    alsoRead: null,
   };
 }
 
@@ -69,6 +71,10 @@ describe("edit screen", () => {
     expect(html).not.toContain("Powered by Geoapify");
     expect(html).not.toContain("prompt");
     expect(html).toContain('href="/"');
+    expect(html).toContain("Paperback");
+    expect(html).not.toContain('href="/analytics"');
+    expect(html).not.toContain(">Catalog</a>");
+    expect(html).not.toContain(">Analytics</a>");
   });
 
   test("a failed check does not present a signed-in editor", () => {
@@ -131,6 +137,10 @@ describe("edit screen", () => {
     expect(html).toContain("Where this month met.");
     expect(html).toContain("this is not a map pin");
     expect(html).toContain(">Picks<");
+    expect(html).toContain("Next meeting");
+    expect(html).not.toContain("public-nav");
+    expect(html).not.toContain(">Catalog<");
+    expect(html).not.toContain(">Analytics<");
     expect(html).toMatch(/<a(?=[^>]*href="\/edit\?month=2026-11-01")(?=[^>]*aria-current="page")[^>]*>/);
     expect(html).toMatch(/href="\/edit\?tab=meeting"/);
     expect(html).not.toMatch(/href="\/edit\?tab=meeting&/);
@@ -260,7 +270,7 @@ describe("edit screen", () => {
     expect(html).toContain("Saved. The cover link was left off because it is not an Open Library cover.");
   });
 
-  test("starts on the pick for the meeting's month, and a prompt is a choice", () => {
+  test("names the current pick and can leave the date unset", () => {
     const html = renderToStaticMarkup(
       <EditScreen
         access={{ status: "signed-in", email: "keeper@example.com" }}
@@ -279,11 +289,10 @@ describe("edit screen", () => {
     expect(meeting).toContain('value="18:30"');
     expect(meeting).toContain('name="place"');
     expect(meeting).toContain('type="text"');
-    expect(meeting).toContain("<select");
-    expect(meeting).toContain("November 2026 — The Left Hand of Darkness by Ursula K. Le Guin");
+    expect(meeting).not.toContain("<select");
     expect(meeting).toContain("March 2026 — Read a book from the year you were born.");
-    expect(meeting).toMatch(/<option[^>]*value="november"[^>]*selected/);
-    expect(meeting).not.toMatch(/<option[^>]*value="march"[^>]*selected/);
+    expect(meeting).toContain("Date and place aren&#x27;t set yet");
+    expect(meeting).toContain("Skip this meeting");
     expect(meeting).toContain("Save meeting");
     expect(meeting.indexOf('id="meeting-pick"')).toBeLessThan(meeting.indexOf('id="meeting-date"'));
     expect(meeting.indexOf('id="meeting-date"')).toBeLessThan(meeting.indexOf('id="meeting-time"'));
@@ -300,11 +309,17 @@ describe("edit screen", () => {
     expect(meeting).not.toMatch(/geocode|leaflet|<iframe|type="tel"|type="email"|name="phone"|name="email"/i);
   });
 
-  test("starts on the featured pick when the meeting's month has none", () => {
+  test("asks for the next pick when every saved pick has been released", () => {
     const html = renderToStaticMarkup(
       <EditScreen
         access={{ status: "signed-in", email: "keeper@example.com" }}
-        records={{ status: "ready", picks: [book(), prompt()] }}
+        records={{
+          status: "ready",
+          picks: [
+            { ...book(), meetingSettled: "happened" },
+            { ...prompt(), meetingSettled: "happened" },
+          ],
+        }}
         selectedMonth={null}
         notice={null}
         defaultMonth="2027-01"
@@ -317,9 +332,7 @@ describe("edit screen", () => {
     );
     const meeting = html;
 
-    expect(meeting).toContain('value="2027-01-15"');
-    expect(meeting).toMatch(/<option[^>]*value="november"[^>]*selected/);
-    expect(meeting).not.toMatch(/<option[^>]*value="march"[^>]*selected/);
+    expect(meeting).toContain("The next book hasn&#x27;t been selected. Watch this space.");
   });
 
   test("reopens on the saved pick, including one she switched to", () => {
@@ -344,7 +357,7 @@ describe("edit screen", () => {
     expect(meeting).toContain("The next meeting is saved.");
     expect(meeting).toContain('value="19:00"');
     expect(meeting).toContain('value="at a member&#x27;s home"');
-    expect(meeting).toMatch(/<option[^>]*value="march"[^>]*selected/);
+    expect(meeting).toContain("March 2026 — Read a book from the year you were born.");
     expect(meeting).toContain('name="returnMonth"');
     expect(meeting).toContain('value="2026-11-01"');
   });
