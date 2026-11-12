@@ -3,7 +3,7 @@ import { WICKER_HUSBAND_COVER } from "./cover";
 
 /**
  * Genres recorded for the club, matched on the stored title.
- * These are not the shorter names the genre chart uses.
+ * The genre chart uses these, with a parenthetical note removed.
  */
 export const RECORDED_GENRES: readonly (readonly [string, string])[] = [
   ["Motherthing", "Horror (dark comedy)"],

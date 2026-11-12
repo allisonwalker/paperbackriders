@@ -223,7 +223,7 @@ describe("reading totals", () => {
     ]);
   });
 
-  test("uses the chart genre for a title that starts with Stiff: without rewriting the pick", () => {
+  test("groups a book by the genre stored on the pick", () => {
     const stiff = book("2026-11-01", {
       title: "Stiff: The Curious Lives of Human Cadavers",
       genre: "Science",
@@ -233,8 +233,8 @@ describe("reading totals", () => {
       [
         stiff,
         book("2026-10-01", {
-          title: "The Husbands",
-          genre: "Fantasy",
+          title: "Lovelight Farms",
+          genre: "Romance",
           alsoRead: {
             title: "Red Winter",
             genre: "Horror",
@@ -250,12 +250,13 @@ describe("reading totals", () => {
     expect(stiff.genre).toBe("Science");
     expect(totals.bookCount).toBe(3);
     expect(labelsOf(totals.genres)).toEqual([
-      { label: "Fantasy", count: 1 },
-      { label: "Nonfiction", count: 1 },
-      { label: "Romantic comedy", count: 1 },
+      { label: "Horror", count: 1 },
+      { label: "Romance", count: 1 },
+      { label: "Science", count: 1 },
     ]);
     expect(totals.genres.map((genre) => genre.books)).toEqual([
       [{ title: "Red Winter", month: "2026-10-01", coverUrl: "https://example.com/red-winter.jpg" }],
+      [{ title: "Lovelight Farms", month: "2026-10-01", coverUrl: null }],
       [
         {
           title: "Stiff: The Curious Lives of Human Cadavers",
@@ -263,7 +264,6 @@ describe("reading totals", () => {
           coverUrl: "https://covers.openlibrary.org/b/id/55-L.jpg",
         },
       ],
-      [{ title: "The Husbands", month: "2026-10-01", coverUrl: null }],
     ]);
   });
 

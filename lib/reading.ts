@@ -44,27 +44,6 @@ export type ReadingState = { status: "error" } | ({ status: "ready" } & ReadingT
 
 const PAGE_COUNT_LIMIT = 100_000;
 
-/**
- * Chart-only genres for named titles. A stored genre of Sci-Fi does not join
- * Science fiction. The only name alias is Gothic horror, applied later.
- */
-const CHART_TITLE_GENRES: readonly { title: string; genre: string }[] = [
-  { title: "The Wicker Husband", genre: "Romance" },
-  { title: "The Prestige", genre: "Historical fiction" },
-  { title: "A Thousand Ships", genre: "Historical fiction" },
-  { title: "North Woods", genre: "Historical fiction" },
-  { title: "Shadow of the Wind", genre: "Historical fiction" },
-  { title: "Red Winter", genre: "Fantasy" },
-  { title: "The Employees", genre: "Science fiction" },
-  { title: "The Shining Girls", genre: "Science fiction" },
-  { title: "The Husbands", genre: "Romantic comedy" },
-  { title: "Lovelight Farms", genre: "Romantic comedy" },
-  { title: "Greta & Valdin", genre: "Romantic comedy" },
-  { title: "Lifeforms", genre: "Memoir" },
-  { title: "Stiff", genre: "Nonfiction" },
-  { title: "Big Friendship", genre: "Nonfiction" },
-];
-
 type ChartBook = {
   title: string;
   month: string;
@@ -220,7 +199,7 @@ function pagesToAdd(pageCount: number | null): number {
 }
 
 function addChartBook(groups: Map<string, GenreGroup>, book: ChartBook): void {
-  const spelling = chartGenre(book.title, book.genre);
+  const spelling = chartGenre(book.genre);
   if (spelling == null) {
     return;
   }
@@ -238,9 +217,8 @@ function addChartBook(groups: Map<string, GenreGroup>, book: ChartBook): void {
 }
 
 /** Grouping for the chart. This does not change the genre stored on the pick. */
-function chartGenre(title: string, genre: string | null): string | null {
-  const fromTitle = genreForTitle(title);
-  const spelling = fromTitle ?? genreWithoutNote(genre);
+function chartGenre(genre: string | null): string | null {
+  const spelling = genreWithoutNote(genre);
   if (spelling == null) {
     return null;
   }
@@ -248,20 +226,6 @@ function chartGenre(title: string, genre: string | null): string | null {
     return "Horror";
   }
   return spelling;
-}
-
-function genreForTitle(title: string): string | null {
-  const lower = title.trim().toLocaleLowerCase("en-US");
-  if (lower.length === 0) {
-    return null;
-  }
-  for (const entry of CHART_TITLE_GENRES) {
-    const name = entry.title.toLocaleLowerCase("en-US");
-    if (lower === name || lower.startsWith(`${name}:`)) {
-      return entry.genre;
-    }
-  }
-  return null;
 }
 
 function genreWithoutNote(genre: string | null): string | null {
