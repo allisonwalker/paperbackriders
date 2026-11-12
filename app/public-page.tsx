@@ -26,6 +26,7 @@ export function PublicPage({
             {featured.status === "unselected" ? <p className="unselected-pick">{UNSELECTED_PICK}</p> : null}
             <Dateline meeting={meeting} />
             <FutureMonths entries={upcomingEntries(history.entries, featured)} />
+            <CurrentReading entries={currentEntries(history.entries, featured)} />
             <History entries={readEntries(history.entries, featured)} />
           </section>
         )}
@@ -101,16 +102,27 @@ function FutureMonths({ entries }: { entries: HistoryEntry[] }) {
   );
 }
 
-function History({ entries }: { entries: HistoryEntry[] }) {
+function CurrentReading({ entries }: { entries: HistoryEntry[] }) {
+  if (entries.length === 0) return null;
+
   return (
-    <section className="shelf" aria-label="Reading history">
-      <h3>What we’ve already read</h3>
+    <section className="shelf shelf-open" aria-label="Currently reading">
+      <h3>Currently reading</h3>
       <Shelf entries={entries} />
     </section>
   );
 }
 
-/** Months saved after the current pick, soonest first. The current pick stays with what the club has read. */
+function History({ entries }: { entries: HistoryEntry[] }) {
+  return (
+    <section className="shelf" aria-label="Reading history">
+      <h3>Already read</h3>
+      <Shelf entries={entries} />
+    </section>
+  );
+}
+
+/** Months saved after the current pick, soonest first. */
 function upcomingEntries(entries: HistoryEntry[], featured: FeaturedPickState): HistoryEntry[] {
   if (featured.status !== "ready") return [];
   return entries
@@ -122,9 +134,14 @@ function upcomingEntries(entries: HistoryEntry[], featured: FeaturedPickState): 
     .map(({ entry }) => entry);
 }
 
+function currentEntries(entries: HistoryEntry[], featured: FeaturedPickState): HistoryEntry[] {
+  if (featured.status !== "ready") return [];
+  return entries.filter((entry) => entry.month === featured.month);
+}
+
 function readEntries(entries: HistoryEntry[], featured: FeaturedPickState): HistoryEntry[] {
   if (featured.status !== "ready") return entries;
-  return entries.filter((entry) => entry.month <= featured.month);
+  return entries.filter((entry) => entry.month < featured.month);
 }
 
 function Shelf({ entries }: { entries: HistoryEntry[] }) {
