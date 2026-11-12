@@ -93,6 +93,9 @@ describe("book analytics page", () => {
     expect(css).toMatch(/\.genre-bar\s*\{[^}]*gap:\s*2px;/s);
     expect(css).toMatch(/\.genre-tile\s*\{[^}]*width:\s*2\.25rem;\s*height:\s*3\.375rem;/s);
     expect(css).toMatch(
+      /@media \(max-width: 720px\)\s*\{[\s\S]*?\.genre-list li\s*\{[^}]*grid-template-columns:\s*8\.5rem minmax\(0,\s*1fr\);/s,
+    );
+    expect(css).toMatch(
       /@media \(max-width: 720px\)\s*\{[\s\S]*?\.genre-count\s*\{[^}]*grid-row:\s*2;/s,
     );
     expect(css).toMatch(

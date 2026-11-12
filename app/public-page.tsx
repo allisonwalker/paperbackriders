@@ -25,7 +25,8 @@ export function PublicPage({
             {featured.status === "ready" ? <Hero pickLabel={featured.pickLabel} hero={featured.hero} /> : null}
             {featured.status === "unselected" ? <p className="unselected-pick">{UNSELECTED_PICK}</p> : null}
             <Dateline meeting={meeting} />
-            <History entries={history.entries} />
+            <FutureMonths entries={upcomingEntries(history.entries, featured)} />
+            <History entries={readEntries(history.entries, featured)} />
           </section>
         )}
       </main>
@@ -89,41 +90,75 @@ function Dateline({ meeting }: { meeting: MeetingView }) {
   );
 }
 
+function FutureMonths({ entries }: { entries: HistoryEntry[] }) {
+  if (entries.length === 0) return null;
+
+  return (
+    <section className="shelf" aria-label="Future months">
+      <h3>Future months</h3>
+      <Shelf entries={entries} />
+    </section>
+  );
+}
+
 function History({ entries }: { entries: HistoryEntry[] }) {
   return (
     <section className="shelf" aria-label="Reading history">
       <h3>What we’ve read</h3>
-      <ol className="bib">
-        {entries.map((entry) =>
-          entry.kind === "prompt" ? (
-            <li key={entry.entryKey} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
-              <span className="jacket" />
-              <span className="when">{entry.monthLabel}</span>
-              <em className="prompt-line">{entry.promptText}</em>
-            </li>
-          ) : (
-            <li key={entry.entryKey} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
-              <span className="jacket">
-                {entry.coverUrl ? (
-                  // Only an https covers.openlibrary.org URL, or the club's own Wicker Husband file, reaches this img.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={entry.coverUrl} alt="" />
-                ) : null}
-              </span>
-              <span className="when">{entry.monthLabel}</span>
-              <span className="work">
-                <span className="title">{entry.title}</span>
-                <span className="author">{entry.author}</span>
-              </span>
-              <span className="facts">
-                {entry.pageCount != null ? <span className="pages">{entry.pageCount} pages</span> : null}
-                {entry.genre ? <span className="genre">{entry.genre}</span> : null}
-              </span>
-            </li>
-          ),
-        )}
-      </ol>
+      <Shelf entries={entries} />
     </section>
+  );
+}
+
+/** Months saved after the current pick, soonest first. The current pick stays with what the club has read. */
+function upcomingEntries(entries: HistoryEntry[], featured: FeaturedPickState): HistoryEntry[] {
+  if (featured.status !== "ready") return [];
+  return entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.month > featured.month)
+    .sort((left, right) =>
+      left.entry.month < right.entry.month ? -1 : left.entry.month > right.entry.month ? 1 : left.index - right.index,
+    )
+    .map(({ entry }) => entry);
+}
+
+function readEntries(entries: HistoryEntry[], featured: FeaturedPickState): HistoryEntry[] {
+  if (featured.status !== "ready") return entries;
+  return entries.filter((entry) => entry.month <= featured.month);
+}
+
+function Shelf({ entries }: { entries: HistoryEntry[] }) {
+  return (
+    <ol className="bib">
+      {entries.map((entry) =>
+        entry.kind === "prompt" ? (
+          <li key={entry.entryKey} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
+            <span className="jacket" />
+            <span className="when">{entry.monthLabel}</span>
+            <em className="prompt-line">{entry.promptText}</em>
+          </li>
+        ) : (
+          <li key={entry.entryKey} className={entry.marked ? "now" : undefined} aria-current={entry.marked ? "true" : undefined}>
+            <span className="jacket">
+              {entry.coverUrl ? (
+                // Only an https covers.openlibrary.org URL, or the club's own Wicker Husband file, reaches this img.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={entry.coverUrl} alt="" />
+              ) : null}
+            </span>
+            <span className="when">{entry.monthLabel}</span>
+            <span className="work">
+              <span className="title">{entry.title}</span>
+              <span className="author">{entry.author}</span>
+            </span>
+            <span className="facts">
+              {entry.pageCount != null ? <span className="pages">{entry.pageCount} pages</span> : null}
+              {entry.genre ? <span className="genre">{entry.genre}</span> : null}
+            </span>
+          </li>
+        ),
+      )}
+    </ol>
   );
 }
 
