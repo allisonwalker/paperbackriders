@@ -19,7 +19,6 @@ const secretUrl = `postgres://user:s3cret@${productionHost}/neondb`;
 const previewUrl = `postgres://user:s3cret@${previewHost}/neondb`;
 
 const CHART_NAMES: readonly (readonly [string, string])[] = [
-  ["The Wicker Husband", "Romance"],
   ["The Prestige", "Historical fiction"],
   ["A Thousand Ships", "Historical fiction"],
   ["North Woods", "Historical fiction"],
@@ -113,7 +112,7 @@ describe("recorded genres", () => {
       ),
     ).toEqual({
       genre: "Nonfiction (travel / memoir)",
-      alsoGenre: "Romance / fantasy / short story",
+      alsoGenre: "Romance",
       alsoCoverUrl: "/covers/the-wicker-husband.png",
     });
 
@@ -137,7 +136,7 @@ describe("recorded genres", () => {
           alsoCoverUrl: "https://covers.openlibrary.org/b/id/9-L.jpg",
         }),
       ),
-    ).toBeNull();
+    ).toEqual({ alsoGenre: "Romance" });
   });
 
   test("does not give a prompt a genre", () => {
@@ -193,7 +192,7 @@ describe("recorded genres", () => {
       {
         id: "october",
         patch: {
-          alsoGenre: "Romance / fantasy / short story",
+          alsoGenre: "Romance",
           alsoCoverUrl: "/covers/the-wicker-husband.png",
         },
       },
