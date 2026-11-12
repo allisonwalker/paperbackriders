@@ -314,22 +314,29 @@ describe("public page", () => {
       },
     ];
     const html = render(book, none, { status: "ready", entries });
-    const heroAt = html.indexOf("The Prestige");
+    const heroAt = html.indexOf("<h2>The Prestige</h2>");
+    const futureAt = html.indexOf('aria-label="Future months"');
     const decemberAt = html.indexOf("December 2026");
+    const historyAt = html.indexOf('aria-label="Reading history"');
     const octoberAt = html.indexOf("October 2026");
     const marchAt = html.indexOf("March 2026");
-    const list = html.slice(html.indexOf('aria-label="Reading history"'));
+    const future = html.slice(futureAt, historyAt);
+    const list = html.slice(historyAt);
 
-    expect(html).toContain("What we’ve read");
-    expect(decemberAt).toBeGreaterThan(heroAt);
-    expect(octoberAt).toBeGreaterThan(decemberAt);
+    expect(html).toContain("Future months");
+    expect(html).toContain("What we’ve already read");
+    expect(futureAt).toBeGreaterThan(heroAt);
+    expect(decemberAt).toBeGreaterThan(futureAt);
+    expect(historyAt).toBeGreaterThan(decemberAt);
+    expect(octoberAt).toBeGreaterThan(historyAt);
     expect(marchAt).toBeGreaterThan(octoberAt);
-    expect(list).toContain("Piranesi");
-    expect(list).toContain('<span class="author">Susanna Clarke</span>');
-    expect(list).not.toContain("Susanna Clarke ·");
-    expect(list).toContain("272 pages");
-    expect(list).toContain("Fantasy");
-    expect(list).toContain('<img src="https://covers.openlibrary.org/b/id/42-M.jpg"');
+    expect(future).toContain("Piranesi");
+    expect(list).not.toContain("Piranesi");
+    expect(future).toContain('<span class="author">Susanna Clarke</span>');
+    expect(future).not.toContain("Susanna Clarke ·");
+    expect(future).toContain("272 pages");
+    expect(future).toContain("Fantasy");
+    expect(future).toContain('<img src="https://covers.openlibrary.org/b/id/42-M.jpg"');
     expect(list.indexOf("The Prestige")).toBeLessThan(list.indexOf("The Wicker Husband"));
     expect(list).toContain('<span class="author">Christopher Priest</span>');
     expect(list).toContain("404 pages");
@@ -348,6 +355,76 @@ describe("public page", () => {
     expect(list).not.toContain("<select");
     expect(list).not.toContain("<input");
     expect(list).not.toContain("example.com");
+  });
+
+  test("lists later months soonest first and keeps an extra book with its month", () => {
+    const entries: HistoryEntry[] = [
+      {
+        kind: "book",
+        month: "2027-02-01",
+        monthLabel: "February 2027",
+        title: "Later",
+        author: "Second",
+        pageCount: null,
+        genre: null,
+        coverUrl: null,
+        marked: false,
+        entryKey: "2027-02-01",
+      },
+      {
+        kind: "book",
+        month: "2026-12-01",
+        monthLabel: "December 2026",
+        title: "Soon",
+        author: "First",
+        pageCount: null,
+        genre: null,
+        coverUrl: null,
+        marked: false,
+        entryKey: "2026-12-01",
+      },
+      {
+        kind: "book",
+        month: "2026-12-01",
+        monthLabel: "December 2026",
+        title: "Also soon",
+        author: "Extra",
+        pageCount: null,
+        genre: null,
+        coverUrl: null,
+        marked: false,
+        entryKey: "2026-12-01:also",
+      },
+    ];
+    const html = render(book, none, { status: "ready", entries });
+    const future = html.slice(html.indexOf('aria-label="Future months"'), html.indexOf('aria-label="Reading history"'));
+
+    expect(future.indexOf("Soon")).toBeLessThan(future.indexOf("Also soon"));
+    expect(future.indexOf("Also soon")).toBeLessThan(future.indexOf("Later"));
+    expect(html.indexOf('aria-label="Future months"')).toBeLessThan(html.indexOf('aria-label="Reading history"'));
+  });
+
+  test("leaves out future months when every saved month is the current pick or earlier", () => {
+    const html = render(book, none, {
+      status: "ready",
+      entries: [
+        {
+          kind: "book",
+          month: "2026-10-01",
+          monthLabel: "October 2026",
+          title: "The Prestige",
+          author: "Christopher Priest",
+          pageCount: 404,
+          genre: null,
+          coverUrl: null,
+          marked: true,
+          entryKey: "2026-10-01",
+        },
+      ],
+    });
+
+    expect(html).not.toContain("Future months");
+    expect(html).toContain("What we’ve already read");
   });
 
   test("shows the stored genre and omits a missing page count or genre", () => {
@@ -421,7 +498,7 @@ describe("public page", () => {
     const html = render({ status: "error" }, none, { status: "error" });
     expect(html).toContain("This page could not load.");
     expect(html).not.toContain("Reading history");
-    expect(html).not.toContain("What we’ve read");
+    expect(html).not.toContain("What we’ve already read");
   });
 
   test("renders the place as text, including an address that looks like contact details", () => {
