@@ -865,6 +865,33 @@ main a:focus-visible {
 }
 
 @media (max-width: 720px) {
+  .genre-list li {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .genre-name {
+    flex: none;
+    width: auto;
+    max-width: 8.5rem;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .genre-count {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 0.2rem;
+  }
+
+  .genre-bar {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
   .meeting-map {
     height: 22rem;
   }

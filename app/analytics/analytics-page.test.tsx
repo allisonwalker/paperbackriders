@@ -92,6 +92,12 @@ describe("book analytics page", () => {
     const css = readFileSync(path.join(import.meta.dirname, "../globals.css"), "utf8");
     expect(css).toMatch(/\.genre-bar\s*\{[^}]*gap:\s*2px;/s);
     expect(css).toMatch(/\.genre-tile\s*\{[^}]*width:\s*2\.25rem;\s*height:\s*3\.375rem;/s);
+    expect(css).toMatch(
+      /@media \(max-width: 720px\)\s*\{[\s\S]*?\.genre-count\s*\{[^}]*grid-row:\s*2;/s,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 720px\)\s*\{[\s\S]*?\.genre-bar\s*\{[^}]*flex-wrap:\s*wrap;/s,
+    );
     expect(html).toContain("No places are confirmed yet.");
     expect(html).not.toContain("<canvas");
     expect(frames(html)).toEqual(["books", "pages", "genres"]);

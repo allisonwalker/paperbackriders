@@ -3,7 +3,7 @@ import { WICKER_HUSBAND_COVER } from "./cover";
 
 /**
  * Genres recorded for the club, matched on the stored title.
- * These are not the shorter names the genre chart uses.
+ * The genre chart uses these, with a parenthetical note removed.
  */
 export const RECORDED_GENRES: readonly (readonly [string, string])[] = [
   ["Motherthing", "Horror (dark comedy)"],
@@ -33,7 +33,7 @@ export const RECORDED_GENRES: readonly (readonly [string, string])[] = [
   ["A Thousand Ships", "Historical fiction (mythological retelling)"],
   ["The Prestige", "Historical fiction with sci-fi elements"],
   ["Somebody is Walking on Your Grave", "Nonfiction (travel / memoir)"],
-  ["The Wicker Husband", "Romance / fantasy / short story"],
+  ["The Wicker Husband", "Romance"],
 ];
 
 const RECORDED_BY_TITLE = new Map<string, string>(
@@ -73,11 +73,11 @@ export function recordedGenrePatch(row: RecordedGenreRow): RecordedGenrePatch | 
   }
 
   const patch: RecordedGenrePatch = {};
-  const genre = recordedGenreFor(row.title);
-  if (row.genre == null && genre) patch.genre = genre;
+  const genre = genreToWrite(row.genre, recordedGenreFor(row.title));
+  if (genre) patch.genre = genre;
 
-  const alsoGenre = recordedGenreFor(row.alsoTitle);
-  if (row.alsoGenre == null && alsoGenre) patch.alsoGenre = alsoGenre;
+  const alsoGenre = genreToWrite(row.alsoGenre, recordedGenreFor(row.alsoTitle));
+  if (alsoGenre) patch.alsoGenre = alsoGenre;
   if (titleKey(row.alsoTitle) === WICKER_HUSBAND_TITLE && row.alsoCoverUrl == null) {
     patch.alsoCoverUrl = WICKER_HUSBAND_COVER;
   }
@@ -119,6 +119,16 @@ export function recordedGenreDatabaseUrl(env: ProcessEnv): string {
     }
     throw error;
   }
+}
+
+const REPLACED_WICKER_GENRE = "Romance / fantasy / short story";
+
+/** An empty genre is filled. The Wicker Husband's earlier longer genre becomes Romance. */
+function genreToWrite(current: string | null, recorded: string | null): string | undefined {
+  if (!recorded) return undefined;
+  if (current == null) return recorded;
+  if (current === REPLACED_WICKER_GENRE && recorded !== current) return recorded;
+  return undefined;
 }
 
 function recordedGenreFor(title: string | null): string | null {
